@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rekap Laporan - KSOP</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/dashboard.css">
+  <link rel="stylesheet" href="/laporan.css">
+  <link rel="stylesheet" href="/rekap.css">
+  <link rel="stylesheet" href="/admin-section-layout.css">
+</head>
+<body>
+  <div class="layout admin-section-layout" id="layout">
+    <!-- Sidebar (managed by admin-section-layout.js) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="logo-icon">&#9733;</div>
+          <div class="logo-text">
+            <span class="logo-title">KSOP</span>
+            <span class="logo-subtitle">Cirebon</span>
+          </div>
+        </div>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+      <div class="sidebar-footer"></div>
+    </aside>
+
+    <!-- Main Area -->
+    <div class="main-area admin-section-content" id="mainArea">
+      <!-- Topbar (managed by admin-section-layout.js) -->
+      <header class="topbar" id="topbar"></header>
+
+      <!-- Content -->
+      <main class="admin-content" id="mainContent">
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Rekap Laporan</h3>
+            <div class="action-buttons">
+              <select id="filterBulan" title="Filter berdasarkan bulan">
+                <option value="">Semua Bulan</option>
+                <option value="1">Januari</option><option value="2">Februari</option>
+                <option value="3">Maret</option><option value="4">April</option>
+                <option value="5">Mei</option><option value="6">Juni</option>
+                <option value="7">Juli</option><option value="8">Agustus</option>
+                <option value="9">September</option><option value="10">Oktober</option>
+                <option value="11">November</option><option value="12">Desember</option>
+              </select>
+              <select id="filterTahun" title="Filter berdasarkan tahun">
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+              </select>
+              <button type="button" class="btn btn-primary btn-sm" onclick="loadRekap()">Tampilkan</button>
+              <a href="#" id="exportBtn" class="btn btn-success btn-sm" onclick="exportCSV(event)">Export CSV</a>
+            </div>
+          </div>
+          <div id="rekapContent">
+            <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  </div>
+
+  <script src="/js/auth/auth-store.js"></script>
+  <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/navigation/admin-section-navigation.js"></script>
+  <script src="/js/layouts/admin-section-layout.js"></script>
+  <script src="/app.js"></script>
+  <script src="/translations.js"></script>
+  <script src="/admin-section/_layout.js"></script>
+  <script src="/admin-section/rekap.js?v=4"></script>
+</body>
+</html>

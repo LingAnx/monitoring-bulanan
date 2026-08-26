@@ -1,0 +1,27 @@
+.pegawai-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.pegawai-stat {
+  flex: 1;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.pegawai-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1;
+}
+
+.pegawai-stat-label {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  margin-top: 4px;
+}

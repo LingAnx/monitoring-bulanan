@@ -1,0 +1,146 @@
+.notif-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  position: relative;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.notif-btn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.notif-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  display: none;
+}
+
+.notif-actions {
+  display: flex;
+  gap: 8px;
+}
+
+#markAllReadBtn.hidden {
+  display: none;
+}
+
+.notif-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.notif-item {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  border-bottom: 1px solid var(--gray-100);
+  cursor: pointer;
+  transition: background 0.15s;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.notif-item:hover {
+  background: var(--gray-50);
+}
+
+.notif-item.unread {
+  background: var(--primary-light);
+}
+
+.notif-item.unread .notif-title {
+  font-weight: 600;
+}
+
+.notif-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+.notif-icon-success { background: #d1fae5; }
+.notif-icon-warning { background: #fef3c7; }
+.notif-icon-info    { background: #dbeafe; }
+.notif-icon-danger  { background: #fee2e2; }
+
+.notif-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--gray-800);
+  margin-bottom: 2px;
+}
+
+.notif-message {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.notif-time {
+  font-size: 0.7rem;
+  color: var(--gray-400);
+  white-space: nowrap;
+  margin-left: auto;
+  padding-left: 8px;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.notif-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-300);
+  font-size: 1.1rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.notif-delete:hover {
+  color: var(--danger);
+  background: #fee2e2;
+}
+
+.empty-notif {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--gray-400);
+}
+
+.empty-notif-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.notif-main { max-width: 800px; }

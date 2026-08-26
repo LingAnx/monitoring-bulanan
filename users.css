@@ -1,0 +1,13 @@
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--gray-100);
+}
+
+.form-group label input[type="checkbox"] {
+  margin-right: 6px;
+  width: auto !important;
+}

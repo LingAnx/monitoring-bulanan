@@ -1,0 +1,18 @@
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.action-buttons select {
+  padding: 6px 10px;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  background: #fff;
+}
+
+@media (max-width: 600px) {
+  .action-buttons { flex-wrap: wrap; }
+}

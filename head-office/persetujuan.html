@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Persetujuan - KSOP Cirebon</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/dashboard.css">
+  <link rel="stylesheet" href="/laporan.css">
+  <link rel="stylesheet" href="/approve.css">
+  <link rel="stylesheet" href="/head-office-layout.css">
+</head>
+<body>
+  <div class="headoffice-layout" id="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="logo-icon">&#9733;</div>
+          <div class="logo-text">
+            <span class="logo-title">KSOP</span>
+            <span class="logo-subtitle">Cirebon</span>
+          </div>
+        </div>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+      <div class="sidebar-footer"></div>
+    </aside>
+
+    <!-- Main Area -->
+    <div class="headoffice-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
+          <div class="topbar-title-wrap">
+            <span class="topbar-page-title" id="pageTitle">Persetujuan</span>
+            <div class="topbar-meta">
+              <span class="role-tag" id="roleBadge">KEPALA KANTOR</span>
+            </div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="period-badge" id="periodBadge">
+            <span class="period-dot"></span>
+            <span>Periode Aktif: </span>
+            <strong id="activePeriod">-</strong>
+          </div>
+          <a href="/head-office/notifikasi.html" class="notif-btn" id="notifBtn" aria-label="Notifikasi">
+            &#128276;
+            <span class="notif-badge hidden" id="notifBadge">0</span>
+          </a>
+          <div class="profile-wrap" id="profileWrap">
+            <div class="profile-trigger" id="profileTrigger">
+              <span class="profile-avatar" id="profileAvatar">K</span>
+              <span class="profile-name" id="profileName">-</span>
+            </div>
+            <ul class="profile-dropdown hidden" id="profileDropdown"></ul>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main class="admin-content">
+        <!-- Tab Navigation -->
+        <div class="approve-tabs" id="approveTabs">
+          <button type="button" class="tab-btn active" data-tab="pending" onclick="switchTab('pending')">⏳ Menunggu Persetujuan</button>
+          <button type="button" class="tab-btn" data-tab="reports" onclick="switchTab('reports')">📋 Seluruh Laporan</button>
+          <button type="button" class="tab-btn" data-tab="history" onclick="switchTab('history')">🕐 Riwayat Persetujuan</button>
+          <button type="button" class="tab-btn" data-tab="archive" onclick="switchTab('archive')">📁 Arsip Disetujui</button>
+          <button type="button" class="tab-btn" data-tab="monitoring" onclick="switchTab('monitoring')">👥 Monitoring Seksi</button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div id="tab-pending">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Laporan Menunggu Persetujuan</h3>
+              <div class="action-buttons">
+                <select id="filterPendingBulan" onchange="loadPendingApprovals()" class="filter-select" title="Filter bulan">
+                  <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+                  <option value="4">Apr</option><option value="5">Mei</option><option value="6">Jun</option>
+                  <option value="7">Jul</option><option value="8" selected>Agus</option>
+                  <option value="9">Sep</option><option value="10">Okt</option><option value="11">Nov</option><option value="12">Des</option>
+                </select>
+                <select id="filterPendingTahun" onchange="loadPendingApprovals()" class="filter-select" title="Filter tahun">
+                  <option value="2026" selected>2026</option><option value="2025">2025</option>
+                </select>
+                <button type="button" class="btn btn-outline btn-sm" onclick="loadPendingApprovals()">↻ Refresh</button>
+              </div>
+            </div>
+            <div id="approveContent">
+              <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-reports" class="tab-content-hidden">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Seluruh Laporan</h3>
+              <div class="action-buttons">
+                <select id="filterStatus" onchange="loadAllReports()" class="filter-select" title="Filter status">
+                  <option value="">Semua Status</option>
+                  <option value="diajukan">Diajukan</option>
+                  <option value="diteruskan">Diteruskan</option>
+                  <option value="disetujui">Disetujui</option>
+                  <option value="revisi_admin">Revisi Admin</option>
+                  <option value="revisi_kantor">Revisi Kantor</option>
+                </select>
+                <select id="filterBulanRep" onchange="loadAllReports()" class="filter-select" title="Filter bulan">
+                  <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+                  <option value="4">Apr</option><option value="5">Mei</option><option value="6">Jun</option>
+                  <option value="7">Jul</option><option value="8" selected>Agus</option>
+                  <option value="9">Sep</option><option value="10">Okt</option><option value="11">Nov</option><option value="12">Des</option>
+                </select>
+                <select id="filterTahunRep" onchange="loadAllReports()" class="filter-select" title="Filter tahun">
+                  <option value="2026" selected>2026</option><option value="2025">2025</option>
+                </select>
+                <input type="text" id="searchReport" placeholder="Cari nama/judul..." class="filter-select filter-search" oninput="loadAllReports()" title="Pencarian">
+                <button type="button" class="btn btn-outline btn-sm" onclick="loadAllReports()">↻ Refresh</button>
+              </div>
+            </div>
+            <div id="reportsContent">
+              <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-history" class="tab-content-hidden">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Riwayat Persetujuan</h3>
+              <div class="action-buttons">
+                <select id="filterHisStatus" onchange="loadHistory()" class="filter-select" title="Filter status">
+                  <option value="">Semua</option>
+                  <option value="disetujui">Disetujui</option>
+                  <option value="revisi_kantor">Revisi</option>
+                </select>
+                <button type="button" class="btn btn-outline btn-sm" onclick="loadHistory()">↻ Refresh</button>
+              </div>
+            </div>
+            <div id="historyContent">
+              <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-archive" class="tab-content-hidden">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Arsip Laporan Disetujui</h3>
+              <div class="action-buttons">
+                <input type="text" id="searchArchive" placeholder="Cari nama/judul..." class="filter-select filter-search" oninput="loadArchive()" title="Pencarian">
+                <select id="filterArchiveBulan" onchange="loadArchive()" class="filter-select" title="Filter bulan">
+                  <option value="">Semua Bulan</option>
+                  <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+                  <option value="4">Apr</option><option value="5">Mei</option><option value="6">Jun</option>
+                  <option value="7">Jul</option><option value="8" selected>Agus</option>
+                  <option value="9">Sep</option><option value="10">Okt</option><option value="11">Nov</option><option value="12">Des</option>
+                </select>
+                <select id="filterArchiveTahun" onchange="loadArchive()" class="filter-select" title="Filter tahun">
+                  <option value="2026" selected>2026</option><option value="2025">2025</option>
+                </select>
+                <button type="button" class="btn btn-outline btn-sm" onclick="loadArchive()">↻ Refresh</button>
+              </div>
+            </div>
+            <div id="archiveContent">
+              <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-monitoring" class="tab-content-hidden">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Monitoring Pengiriman Laporan</h3>
+              <div class="action-buttons">
+                <select id="monBulan" onchange="loadMonitoring()" class="filter-select" title="Pilih bulan">
+                  <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+                  <option value="4">Apr</option><option value="5">Mei</option><option value="6">Jun</option>
+                  <option value="7">Jul</option><option value="8" selected>Agus</option>
+                  <option value="9">Sep</option><option value="10">Okt</option><option value="11">Nov</option><option value="12">Des</option>
+                </select>
+                <select id="monTahun" onchange="loadMonitoring()" class="filter-select" title="Pilih tahun">
+                  <option value="2026" selected>2026</option><option value="2025">2025</option>
+                </select>
+                <button type="button" class="btn btn-outline btn-sm" onclick="loadMonitoring()">↻ Refresh</button>
+              </div>
+            </div>
+            <div id="monitoringContent">
+              <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Approval Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modalTitle">Detail Laporan</h3>
+          <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-footer" id="modalFooter"></div>
+      </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirmModal">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title" id="confirmTitle">Konfirmasi</h3>
+          <button type="button" class="modal-close" onclick="closeConfirmModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p id="confirmMessage"></p>
+          <div id="confirmExtra" class="mt-3"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeConfirmModal()">Batal</button>
+          <button type="button" class="btn btn-danger" id="confirmActionBtn">Konfirmasi</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  </div>
+
+  <script src="/js/auth/auth-store.js"></script>
+  <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/navigation/head-office-navigation.js"></script>
+  <script src="/js/layouts/head-office-layout.js"></script>
+  <script src="/app.js"></script>
+  <script src="/translations.js"></script>
+  <script src="/head-office/_layout.js"></script>
+  <script src="/head-office/persetujuan.js?v=8"></script>
+  </body>
+</html>

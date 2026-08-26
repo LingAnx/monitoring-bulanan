@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manajemen User - KSOP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/users.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo">KSOP <span>Cirebon</span></div>
+    <div class="header-right">
+      <div class="user-badge"><span id="userName"></span><span class="role-tag" id="roleBadge"></span></div>
+      <button type="button" class="logout-btn" onclick="handleLogout()">Logout</button>
+    </div>
+  </header>
+
+  <nav class="nav-tabs" id="navTabs"></nav>
+
+  <main class="main-content">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Manajemen Pengguna</h3>
+        <button type="button" class="btn btn-primary btn-sm" onclick="showUserModal()">+ Tambah User</button>
+      </div>
+      <div id="usersContent">
+        <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="userModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="userModalTitle">Tambah Pengguna</h3>
+        <button type="button" class="modal-close" onclick="closeUserModal()">&times;</button>
+      </div>
+      <form id="userForm" onsubmit="saveUser(event)">
+        <input type="hidden" id="userId" value="">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="userUsername" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="userPassword" placeholder="Kosongkan jika tidak ingin mengubah">
+        </div>
+        <div class="form-group">
+          <label>Nama Lengkap</label>
+          <input type="text" id="userNama" required>
+        </div>
+        <div class="form-group">
+          <label>NIP</label>
+          <input type="text" id="userNip">
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select id="userRole" required>
+            <option value="PEGAWAI">Pegawai</option>
+            <option value="ADMIN_SEKSI">Admin Seksi</option>
+            <option value="KEPALA_KANTOR">Kepala Kantor</option>
+            <option value="SUPERADMIN">Admin</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Seksi</label>
+          <select id="userSeksi">
+            <option value="">-- Tidak ada --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="userActive" checked> Aktif
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" onclick="closeUserModal()">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/auth/auth-store.js"></script>
+  <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/navigation/superadmin-navigation.js"></script>
+  <script src="/js/layouts/superadmin-layout.js"></script>
+  <script src="/app.js"></script>
+  <script src="/translations.js"></script>
+  <script src="/superadmin/_layout.js"></script>
+  <script src="/superadmin/pengguna.js?v=3"></script>
+</body>
+</html>

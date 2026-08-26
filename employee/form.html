@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buat Laporan - KSOP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/form.css">
+  <link rel="stylesheet" href="/lampiran.css">
+</head>
+<body>
+  <div class="layout" id="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="logo-icon">&#9733;</div>
+          <div class="logo-text">
+            <span class="logo-title">KSOP</span>
+            <span class="logo-subtitle">Cirebon</span>
+          </div>
+        </div>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav">
+        <a href="/employee/dashboard.html" class="nav-item" data-page="dashboard">
+          <span class="nav-icon">&#9733;</span>
+          <span class="nav-label">Beranda</span>
+        </a>
+        <div class="nav-section">
+          <div class="nav-section-title">PERSETUJUAN</div>
+          <a href="/employee/laporan.html?action=berjalan" class="nav-item" data-page="persetujuan">
+            <span class="nav-icon">&#10003;</span>
+            <span class="nav-label">Persetujuan</span>
+          </a>
+          <a href="/employee/laporan.html?action=riwayat" class="nav-item" data-page="rekap">
+            <span class="nav-icon">&#128202;</span>
+            <span class="nav-label">Rekap</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Laporan Saya</div>
+          <a href="/employee/laporan.html?action=create" class="nav-item active" data-page="buat">
+            <span class="nav-icon">&#43;</span>
+            <span class="nav-label">Buat Laporan</span>
+          </a>
+          <a href="/employee/laporan.html?action=draft" class="nav-item" data-page="draft">
+            <span class="nav-icon">&#128196;</span>
+            <span class="nav-label">Draft</span>
+            <span class="nav-badge hidden" id="draftBadge">0</span>
+          </a>
+          <a href="/employee/laporan.html?action=berjalan" class="nav-item" data-page="berjalan">
+            <span class="nav-icon">&#9203;</span>
+            <span class="nav-label">Laporan Berjalan</span>
+            <span class="nav-badge hidden" id="berjalanBadge">0</span>
+          </a>
+          <a href="/employee/laporan.html?action=riwayat" class="nav-item" data-page="riwayat">
+            <span class="nav-icon">&#128197;</span>
+            <span class="nav-label">Riwayat Laporan</span>
+          </a>
+        </div>
+        <a href="/employee/notifikasi.html" class="nav-item" data-page="notif">
+          <span class="nav-icon">&#9888;</span>
+          <span class="nav-label">Notifikasi</span>
+          <span class="nav-badge hidden" id="sidebarNotifBadge">0</span>
+        </a>
+        <a href="/employee/profil.html" class="nav-item" data-page="profil">
+          <span class="nav-icon">&#9825;</span>
+          <span class="nav-label">Profil Saya</span>
+        </a>
+        <div class="sidebar-footer">
+        <a href="/login.html" class="nav-item" onclick="handleLogout()">
+            <span class="nav-icon">&#10140;</span>
+            <span class="nav-label">Logout</span>
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Area -->
+    <div class="main-area">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button type="button" class="mobile-menu-btn" id="mobileMenuBtn">&#9776;</button>
+          <h1 class="page-title" id="pageTitle">Buat Laporan</h1>
+        </div>
+        <div class="topbar-right">
+          <div class="user-badge">
+            <span id="userName"></span>
+            <span class="role-tag" id="roleBadge"></span>
+          </div>
+          <a href="/employee/notifikasi.html" class="notif-btn" id="notifBtn">
+            &#128276;
+            <span class="notif-badge hidden" id="notifBadge">0</span>
+          </a>
+          <button type="button" class="logout-btn" onclick="handleLogout()">Logout</button>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <div class="form-container">
+    <div class="form-container">
+      <div class="card">
+        <h2 class="form-title">Form Laporan Kinerja Bulanan</h2>
+        <form id="laporanForm">
+          <input type="hidden" id="laporanId" value="">
+
+          <h3 class="section-title">A. Identitas</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nama</label>
+              <input type="text" id="nama" readonly>
+            </div>
+            <div class="form-group">
+              <label>NIP</label>
+              <input type="text" id="nip" readonly>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Seksi</label>
+              <input type="text" id="seksiDisplay" readonly>
+            </div>
+            <div class="form-group">
+              <label>Periode</label>
+              <input type="month" id="bulanTahun" required>
+            </div>
+          </div>
+
+          <h3 class="section-title">B. Kegiatan Bulanan</h3>
+          <table class="activity-table" id="activityTable">
+            <thead>
+              <tr>
+                <th style="width:40px">No</th>
+                <th style="width:120px">Tanggal</th>
+                <th>Kegiatan</th>
+                <th style="width:100px">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="activityBody"></tbody>
+          </table>
+          <button type="button" class="btn btn-outline btn-sm mt-2" onclick="addActivityRow()">+ Tambah Kegiatan</button>
+
+          <h3 class="section-title mt-4">C. Capaian / Pekerjaan Utama</h3>
+          <div class="form-group">
+            <textarea id="capaian" rows="3" placeholder="Tuliskan capaian pekerjaan utama bulan ini..." required></textarea>
+          </div>
+
+          <h3 class="section-title">D. Kendala</h3>
+          <div class="form-group">
+            <textarea id="kendala" rows="2" placeholder="Tuliskan kendala yang dihadapi (jika ada)..."></textarea>
+          </div>
+
+          <h3 class="section-title">E. Tindak Lanjut</h3>
+          <div class="form-group">
+            <textarea id="tindakLanjut" rows="2" placeholder="Tuliskan tindak lanjut yang akan dilakukan..."></textarea>
+          </div>
+
+          <h3 class="section-title">F. Rencana Kegiatan Bulan Berikutnya</h3>
+          <div class="form-group">
+            <textarea id="rencana" rows="2" placeholder="Tuliskan rencana kegiatan bulan depan..."></textarea>
+          </div>
+
+          <h3 class="section-title">G. Lampiran <span class="lampiran-hint">(JPG, PNG, PDF, DOC — maks 10MB)</span></h3>
+          <div class="form-group">
+            <input type="hidden" id="lampiranData" value="[]">
+            <label for="lampiranInput" class="lampiran-file-label">Pilih File Lampiran</label>
+            <input type="file" id="lampiranInput" multiple accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx" onchange="handleLampiranChange(event)" title="Pilih lampiran" aria-label="Pilih lampiran">
+            <div id="lampiranPreview"></div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline" onclick="saveDraft()">Simpan Draft</button>
+            <button type="submit" class="btn btn-primary">Ajukan Laporan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  </div>
+
+  <script src="/js/auth/auth-store.js"></script>
+  <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/navigation/employee-navigation.js"></script>
+  <script src="/js/layouts/employee-layout.js"></script>
+  <script src="/app.js"></script>
+  <script src="/translations.js"></script>
+  <script src="/employee/_layout.js"></script>
+  <script src="/employee/form.js?v=4"></script>
+</body>
+</html>

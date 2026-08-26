@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Pegawai - KSOP</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/dashboard.css">
+  <link rel="stylesheet" href="/laporan.css">
+  <link rel="stylesheet" href="/pegawai.css">
+  <link rel="stylesheet" href="/admin-section-layout.css">
+</head>
+<body>
+  <div class="layout admin-section-layout" id="layout">
+    <!-- Sidebar (managed by admin-section-layout.js) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="logo-icon">&#9733;</div>
+          <div class="logo-text">
+            <span class="logo-title">KSOP</span>
+            <span class="logo-subtitle">Cirebon</span>
+          </div>
+        </div>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+      <div class="sidebar-footer"></div>
+    </aside>
+
+    <!-- Main Area -->
+    <div class="main-area admin-section-content" id="mainArea">
+      <!-- Topbar (managed by admin-section-layout.js) -->
+      <header class="topbar" id="topbar"></header>
+
+      <!-- Content -->
+      <main class="admin-content">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Data Pegawai</h3>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openAddPegawai()">+ Tambah Pegawai</button>
+          </div>
+          <div class="card-body" id="pegawaiContent">
+            <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Add/Edit Pegawai Modal -->
+    <div class="modal-overlay" id="pegawaiModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 class="modal-title" id="pegawaiModalTitle">Tambah Pegawai</h3>
+          <button type="button" class="modal-close" onclick="closePegawaiModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="pegawaiForm" onsubmit="savePegawai(event)">
+            <input type="hidden" id="pegawaiId">
+            <div class="form-group">
+              <label for="pegawaiNama">Nama Lengkap</label>
+              <input type="text" id="pegawaiNama" name="pegawaiNama" required>
+            </div>
+            <div class="form-group">
+              <label for="pegawaiNip">NIP</label>
+              <input type="text" id="pegawaiNip" name="pegawaiNip" required>
+            </div>
+            <div class="form-group">
+              <label for="pegawaiJabatan">Jabatan</label>
+              <input type="text" id="pegawaiJabatan" name="pegawaiJabatan" required>
+            </div>
+            <div class="form-group">
+              <label for="pegawaiStatus">Status</label>
+              <select id="pegawaiStatus" name="pegawaiStatus">
+                <option value="aktif">Aktif</option>
+                <option value="nonaktif">Nonaktif</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-outline" onclick="closePegawaiModal()">Batal</button>
+              <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  </div>
+
+  
+  <script src="/js/auth/auth-store.js"></script>
+  <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/navigation/admin-section-navigation.js"></script>
+  <script src="/js/layouts/admin-section-layout.js"></script>
+  <script src="/app.js"></script>
+  <script src="/translations.js"></script>
+  <script src="/admin-section/_layout.js"></script>
+  <script src="/admin-section/pegawai.js?v=3"></script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KSOP - Sistem Pelaporan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo">KSOP <span>Cirebon</span></div>
+    <nav class="nav-tabs" id="navTabs">
+      <a href="/login.html" class="nav-tab">Dashboard</a>
+      <a href="/login.html" class="nav-tab">Daftar Laporan</a>
+      <a href="/login.html" class="nav-tab">Rekap</a>
+      <a href="/login.html" class="nav-tab" id="loginTab" style="display:none">Login</a>
+    </nav>
+  </header>
+
+  <main class="landing">
+    <section class="hero">
+      <h1>Sistem Pelaporan Kinerja Bulanan</h1>
+      <p class="hero-sub">KSOP Kelas II Cirebon — 3 Level Verifikasi: Pegawai → Admin Seksi → Kepala Kantor</p>
+      <div class="hero-actions">
+        <a href="/login.html" class="btn btn-primary">Masuk Sistem</a>
+        <a href="#flow" class="btn btn-outline">Pelajari Alur</a>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h3>1. Buat Laporan</h3>
+        <p>Pegawai mengisi laporan kinerja bulanan: judul, periode, capaian, kendala, rencana tindak lanjut.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>2. Verifikasi Seksi</h3>
+        <p>Admin Seksi memeriksa dan dapat meminta revisi atau meneruskan ke Kepala Kantor.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✅</div>
+        <h3>3. Persetujuan</h3>
+        <p>Kepala Kantor memberikan persetujuan final, atau mengembalikan laporan untuk revisi.</p>
+      </div>
+    </section>
+
+    <section id="flow" class="flow-section">
+      <h2>Alur Pelaporan</h2>
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-circle">1</div>
+          <h4>Draft</h4>
+          <p>Laporan baru dibuat oleh pegawai</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-circle">2</div>
+          <h4>Diajukan</h4>
+          <p>Laporan dikirim untuk verifikasi</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-circle">3</div>
+          <h4>Diverifikasi</h4>
+          <p>Admin Seksi menerima/minta revisi</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-circle">4</div>
+          <h4>Disetujui</h4>
+          <p>Kepala Kantor menyetujui akhir</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <h2>Siap Mengirim Laporan?</h2>
+      <p>Masuk dengan akun Anda untuk mulai mengelola laporan.</p>
+      <a href="/login.html" class="btn btn-primary">Masuk Sekarang</a>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>&copy; 2026 KSOP Kelas II Cirebon. Sistem Pelaporan Kinerja 3 Level.</p>
+  </footer>
+
+  <script src="/js/auth/auth-store.js"></script>
+  <script src="/app.js"></script>
+  <script src="/translations.js"></script>
+  <script src="/index.js"></script>
+</body>
+</html>

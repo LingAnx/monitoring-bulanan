@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin Seksi - Sistem Laporan Bulanan KSOP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/dashboard.css">
+  <link rel="stylesheet" href="/laporan.css">
+  <link rel="stylesheet" href="/admin-section-layout.css">
+</head>
+<body>
+  <div class="layout admin-section-layout" id="layout">
+    <!-- Sidebar (managed by admin-section-layout.js) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="logo-icon">&#9733;</div>
+          <div class="logo-text">
+            <span class="logo-title">KSOP</span>
+            <span class="logo-subtitle">Cirebon</span>
+          </div>
+        </div>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+      <div class="sidebar-footer"></div>
+    </aside>
+
+    <!-- Main Area -->
+    <div class="main-area admin-section-content" id="mainArea">
+      <!-- Topbar (managed by admin-section-layout.js) -->
+      <header class="topbar" id="topbar"></header>
+
+      <!-- Page Content -->
+      <main class="admin-content" id="mainContent">
+        <!-- Skeleton Loading -->
+        <div class="skeleton-dashboard" id="skeletonLoading">
+          <div class="skeleton-hero">
+            <div class="skeleton-line w-60"></div>
+            <div class="skeleton-line w-40"></div>
+            <div class="skeleton-btn"></div>
+          </div>
+          <div class="skeleton-stats">
+            <div class="skeleton-card h-30"></div>
+            <div class="skeleton-card h-30"></div>
+            <div class="skeleton-card h-30"></div>
+            <div class="skeleton-card h-30"></div>
+          </div>
+          <div class="skeleton-grid">
+            <div class="skeleton-card h-40"></div>
+            <div class="skeleton-card h-40"></div>
+          </div>
+        </div>
+
+        <!-- Dashboard Content (hidden until loaded) -->
+        <div id="dashboardContent" class="dashboard-content-hidden">
+          <!-- Hero Section -->
+          <div class="hero-section">
+            <div class="hero-content">
+              <h1 class="hero-title" id="greetingFull">Selamat Pagi</h1>
+              <p class="hero-subtitle">Selamat datang di Dashboard Admin Seksi. Pantau laporan dari pegawai di seksi Anda.</p>
+              <div class="hero-actions">
+                <a href="/admin-section/laporan.html" class="btn btn-primary">Persetujuan</a>
+                <a href="/admin-section/laporan.html" class="btn btn-secondary">Lihat Semua</a>
+              </div>
+            </div>
+            <div class="hero-decoration">
+              <div class="deco-circle deco-1"></div>
+              <div class="deco-circle deco-2"></div>
+              <div class="deco-circle deco-3"></div>
+            </div>
+          </div>
+
+          <!-- Stats Grid -->
+          <div class="stats-grid-modern" id="statsGrid">
+            <div class="stat-card-modern stat-pending" onclick="window.location.href='/admin-section/laporan.html'">
+              <div class="stat-icon">⏳</div>
+              <div class="stat-info">
+                <div class="stat-value" id="statPending">0</div>
+                <div class="stat-label">Menunggu Persetujuan</div>
+                <div class="stat-desc">Laporan menunggu</div>
+              </div>
+              <span class="stat-arrow">→</span>
+            </div>
+            <div class="stat-card-modern stat-revisi" onclick="window.location.href='/admin-section/laporan.html'">
+              <div class="stat-icon">🔄</div>
+              <div class="stat-info">
+                <div class="stat-value" id="statRevisi">0</div>
+                <div class="stat-label">Revisi Admin</div>
+                <div class="stat-desc">Butuh perbaikan</div>
+              </div>
+              <span class="stat-arrow">→</span>
+            </div>
+            <div class="stat-card-modern stat-approved" onclick="window.location.href='/admin-section/laporan.html?status=disetujui'">
+              <div class="stat-icon">✅</div>
+              <div class="stat-info">
+                <div class="stat-value" id="statDisetujui">0</div>
+                <div class="stat-label">Disetujui</div>
+                <div class="stat-desc">Selesai diproses</div>
+              </div>
+              <span class="stat-arrow">→</span>
+            </div>
+            <div class="stat-card-modern stat-pegawai">
+              <div class="stat-icon">👥</div>
+              <div class="stat-info">
+                <div class="stat-value" id="statPegawai">0</div>
+                <div class="stat-label">Total Pegawai</div>
+                <div class="stat-desc">Di seksi Anda</div>
+              </div>
+              <span class="stat-arrow">→</span>
+            </div>
+          </div>
+
+          <!-- Dashboard Grid -->
+          <div class="dashboard-grid">
+            <!-- Left Column -->
+            <div class="dashboard-left">
+              <!-- Period & Deadline Card -->
+              <div class="card period-info-card">
+                <div class="card-header">
+                  <h3 class="card-title">Informasi Periode</h3>
+                </div>
+                <div class="period-content">
+                  <div class="period-name" id="periodName">-</div>
+                  <div class="period-dates">
+                    <span id="periodMonth">-</span>
+                    <span class="period-sep">|</span>
+                    <span id="periodYear">-</span>
+                  </div>
+                  <div id="periodActiveBadge" class="period-active-badge hidden">
+                    🟢 Periode Aktif
+                  </div>
+                </div>
+                <div class="deadline-info hidden" id="deadlineInfo">
+                  <div class="deadline-label">Deadline Pengumpulan</div>
+                  <div class="deadline-value" id="deadlineValue">-</div>
+                  <div class="deadline-progress">
+                    <div class="deadline-bar-track">
+                      <div class="deadline-bar-fill hidden" id="deadlineBarFill"></div>
+                    </div>
+                    <div class="deadline-meta">
+                      <span class="deadline-remaining" id="deadlineRemaining">-</span>
+                      <span class="deadline-used" id="deadlineUsed">-</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recent Reports Card -->
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="card-title">Laporan Terbaru</h3>
+                  <a href="/admin-section/laporan.html" class="btn-sm">Lihat Semua →</a>
+                </div>
+                <div class="history-table-wrap">
+                  <table class="history-table" id="recentTable">
+                    <thead>
+                      <tr>
+                        <th>Pegawai</th>
+                        <th>Bulan</th>
+                        <th>Status</th>
+                        <th>Tanggal</th>
+                        <th>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="recentTableBody">
+                      <tr><td colspan="5" class="empty-state-mini">Memuat data...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="dashboard-right">
+              <!-- Quick Actions -->
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="card-title">Aksi Cepat</h3>
+                </div>
+                <div class="quick-actions-grid">
+                  <a href="/admin-section/laporan.html" class="qa-item">
+                    <div class="qa-icon blue">📋</div>
+                    <span>Persetujuan</span>
+                  </a>
+                  <a href="/admin-section/laporan.html?status=disetujui" class="qa-item">
+                    <div class="qa-icon green">✅</div>
+                    <span>Laporan Selesai</span>
+                  </a>
+                  <a href="/admin-section/laporan.html?status=revisi_admin" class="qa-item">
+                    <div class="qa-icon red">🔄</div>
+                    <span>Revisi Admin</span>
+                  </a>
+                  <a href="/admin-section/notifikasi.html" class="qa-item">
+                    <div class="qa-icon orange">🔔</div>
+                    <span>Notifikasi</span>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Activity Timeline -->
+              <div class="card activity-card">
+                <div class="card-header">
+                  <h3 class="card-title">Aktivitas Terbaru</h3>
+                </div>
+                <div class="activity-timeline" id="activityTimeline">
+                  <div class="empty-state-mini">Belum ada aktivitas</div>
+                </div>
+              </div>
+
+              <!-- Notifications -->
+              <div class="card notifications-card">
+                <div class="card-header">
+                  <h3 class="card-title">Notifikasi</h3>
+                  <a href="/admin-section/notifikasi.html" class="btn-sm">Lihat Semua →</a>
+                </div>
+                <div class="notifications-list" id="notifList">
+                  <div class="empty-state-mini">Tidak ada notifikasi</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Revision Alert (hidden by default) -->
+          <div class="revision-alert-card hidden" id="revisionAlert">
+            <div class="revision-alert-icon">⚠️</div>
+            <div class="revision-alert-content">
+              <div class="revision-alert-title">Laporan Butuh Revisi</div>
+              <div class="revision-alert-text" id="revisionAlertText">Ada laporan yang perlu ditindaklanjuti.</div>
+              <div class="revision-alert-meta">
+                <span id="revisionCount">0</span> laporan perlu revisi
+              </div>
+            </div>
+            <button type="button" class="btn-sm btn-danger" onclick="window.location.href='/admin-section/laporan.html'">Kelola Sekarang</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <script src="/js/auth/auth-store.js"></script>
+  <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/navigation/admin-section-navigation.js"></script>
+  <script src="/js/layouts/admin-section-layout.js"></script>
+  <script src="/app.js"></script>
+  <script src="/translations.js"></script>
+  <script src="/admin-section/_layout.js"></script>
+  <script src="/admin-section/dashboard.js?v=5"></script>
+</body>
+</html>
