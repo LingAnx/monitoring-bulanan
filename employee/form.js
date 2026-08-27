@@ -210,6 +210,12 @@ async function saveDraft() {
   const { bulan, tahun } =
     parseMonthYear(bulanTahun);
 
+  console.log('SAVE DRAFT PERIODE:', {
+    bulanTahun,
+    bulan,
+    tahun
+  });
+
   const activities =
     gatherActivities();
 
@@ -289,6 +295,8 @@ async function saveDraft() {
         : null
   };
 
+  console.log('SAVE DRAFT DATA:', data);
+
   try {
     const laporanIdEl =
       document.getElementById('laporanId');
@@ -349,7 +357,7 @@ async function saveDraft() {
     );
 
     showNotification(
-      'Gagal menyimpan draft',
+      err.message || 'Gagal menyimpan draft',
       'error'
     );
 

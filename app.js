@@ -108,22 +108,40 @@ function showNotification(msg, type = 'info') {
 // ── Fetch with timeout and retry ─────────────────────
 async function apiFetch(url, options = {}, config = {}) {
   const { timeout = API_TIMEOUT, retries = MAX_RETRIES } = config;
+
+  const method = (options.method || 'GET').toUpperCase();
+
+  // Hanya request baca yang boleh di-retry.
+  // POST/PUT/PATCH/DELETE hanya boleh dikirim satu kali.
+  const canRetry = method === 'GET' || method === 'HEAD';
+  const maxAttempts = canRetry ? Math.max(1, retries) : 1;
+
   let lastError;
-  
-  for (let attempt = 1; attempt <= retries; attempt++) {
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
-    
+
     try {
       const res = await fetch(`${API_BASE}${url}`, {
         ...options,
-        headers: { ...getAuthHeaders(), ...options.headers },
+        headers: {
+          ...getAuthHeaders(),
+          ...options.headers
+        },
         signal: controller.signal
       });
+
       clearTimeout(timeoutId);
-      
-      const data = await res.json();
-      
+
+      let data;
+
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
       if (res.status === 401) {
         _auth('logoutCleanup') || void 0;
         currentUser = null;
@@ -131,29 +149,57 @@ async function apiFetch(url, options = {}, config = {}) {
         window.location.href = '/login.html';
         return data;
       }
-      
-      if (!res.ok && data.success === false) {
-        throw new Error(data.message || `HTTP ${res.status}`);
+
+      if (!res.ok) {
+        const error = new Error(
+          data.message || `HTTP ${res.status}`
+        );
+
+        error.status = res.status;
+        throw error;
       }
-      
+
       return data;
+
     } catch (error) {
       clearTimeout(timeoutId);
       lastError = error;
-      
-      // Don't retry on auth errors or client errors
-      if (error.name === 'AbortError' || error.message?.includes('401') || attempt >= retries) {
+
+      // POST/PUT/PATCH/DELETE tidak pernah retry
+      if (!canRetry) {
         break;
       }
-      
-      // Wait before retry (exponential backoff)
-      await new Promise(r => setTimeout(r, Math.pow(2, attempt - 1) * 500));
+
+      // Timeout tidak diulang
+      if (error.name === 'AbortError') {
+        break;
+      }
+
+      // Error client 4xx tidak diulang
+      if (
+        error.status >= 400 &&
+        error.status < 500
+      ) {
+        break;
+      }
+
+      // Sudah mencapai percobaan terakhir
+      if (attempt >= maxAttempts) {
+        break;
+      }
+
+      // Retry hanya untuk GET/HEAD pada network error / server error
+      await new Promise(resolve =>
+        setTimeout(
+          resolve,
+          Math.pow(2, attempt - 1) * 500
+        )
+      );
     }
   }
-  
+
   throw lastError;
 }
-
 // ── Global error boundary ────────────────────────────
 window.addEventListener('error', (e) => {
   console.error('Global error:', e.error);

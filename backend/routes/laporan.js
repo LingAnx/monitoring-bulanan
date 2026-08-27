@@ -144,7 +144,6 @@ function jsonParam(value) {
   return JSON.stringify(value);
 }
 
-
 function validateBasicReportInput({
   judul,
   bulan,
@@ -181,8 +180,6 @@ function validateBasicReportInput({
 
   return null;
 }
-
-
 /**
  * Mengecek apakah user boleh membaca laporan.
  *
@@ -1072,7 +1069,6 @@ router.post(
           10
         );
 
-
       const lampiran =
         normalizeLampiran(
           req.body.lampiran
@@ -1080,7 +1076,6 @@ router.post(
 
 
       await client.query('BEGIN');
-
 
       /*
        * Cegah laporan periode yang sama
@@ -1090,7 +1085,7 @@ router.post(
       const duplicate =
         await client.query(
           `
-          SELECT id
+          SELECT id, id_user, bulan, tahun, status
 
           FROM laporan
 
@@ -1107,7 +1102,6 @@ router.post(
             parsedYear
           ]
         );
-
 
       if (duplicate.rows.length) {
 
@@ -2221,7 +2215,11 @@ router.post(
             catatan_kantor = $2,
 
             tanggal_persetujuan =
-              CURRENT_TIMESTAMP,
+              CASE
+                WHEN $1::varchar = 'disetujui'
+                  THEN CURRENT_TIMESTAMP
+                ELSE NULL
+              END,  
 
             updated_at =
               CURRENT_TIMESTAMP
