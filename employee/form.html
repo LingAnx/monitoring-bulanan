@@ -6,6 +6,7 @@
   <title>Buat Laporan - KSOP</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/laporan.css">
   <link rel="stylesheet" href="/form.css">
   <link rel="stylesheet" href="/lampiran.css">
 </head>
@@ -28,17 +29,6 @@
           <span class="nav-icon">&#9733;</span>
           <span class="nav-label">Beranda</span>
         </a>
-        <div class="nav-section">
-          <div class="nav-section-title">PERSETUJUAN</div>
-          <a href="/employee/laporan.html?action=berjalan" class="nav-item" data-page="persetujuan">
-            <span class="nav-icon">&#10003;</span>
-            <span class="nav-label">Persetujuan</span>
-          </a>
-          <a href="/employee/laporan.html?action=riwayat" class="nav-item" data-page="rekap">
-            <span class="nav-icon">&#128202;</span>
-            <span class="nav-label">Rekap</span>
-          </a>
-        </div>
         <div class="nav-section">
           <div class="nav-section-title">Laporan Saya</div>
           <a href="/employee/laporan.html?action=create" class="nav-item active" data-page="buat">
@@ -100,7 +90,7 @@
       </header>
 
       <!-- Content -->
-      <div class="form-container">
+      <main class="main-container">
     <div class="form-container">
       <div class="card">
         <h2 class="form-title">Form Laporan Kinerja Bulanan</h2>
@@ -179,9 +169,11 @@
       </div>
     </div>
   </main>
-
+</div>
+  
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  </div>
+  
+</div>
 
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>

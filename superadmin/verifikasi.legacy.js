@@ -1,7 +1,14 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('SUPERADMIN');
   const authenticated = await initAuth();
   if (!authenticated) return;
+
+  let userRole = null;
+  try { userRole = requireRole('SUPERADMIN'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
+    return;
+  }
 
   document.getElementById('userName').textContent = currentUser.nama;
   document.getElementById('roleBadge').textContent = roleName(currentUser.role);

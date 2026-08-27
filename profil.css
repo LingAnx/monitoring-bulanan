@@ -1,0 +1,259 @@
+/* ══════════════════════════════════════════════════
+   profil.css — Profile page styles for KSOP Cirebon
+   Role-neutral: works for PEGAWAI, ADMIN_SEKSI, KEPALA_KANTOR
+   ══════════════════════════════════════════════════ */
+
+/* ── Profile Card ──────────────────────────────── */
+.profile-card {
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28px 32px;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Profile Header ────────────────────────────── */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.profile-header .profile-avatar {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(26,86,168,0.3);
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-info h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+}
+
+.profile-info p {
+  font-size: 0.85rem;
+  color: var(--gray-500);
+  margin: 0 0 6px 0;
+}
+
+.profile-header .role-badge {
+  display: inline-block;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ── Profile Form ──────────────────────────────── */
+.profile-form {
+  width: 100%;
+}
+
+.profile-form h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin: 24px 0 16px 0;
+  padding-top: 24px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.profile-form hr {
+  border: none;
+  border-top: 1px solid var(--gray-200);
+  margin: 24px 0;
+}
+
+/* ── Form Rows ─────────────────────────────────── */
+.profile-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* ── Form Group (overrides inherited if needed) ── */
+.profile-form .form-group {
+  margin-bottom: 16px;
+}
+
+.profile-form .form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--gray-700);
+  margin-bottom: 6px;
+}
+
+/* ── Inputs & Selects ──────────────────────────── */
+.profile-form input,
+.profile-form select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  background: #fff;
+  color: var(--gray-800);
+}
+
+.profile-form input:hover,
+.profile-form select:hover {
+  border-color: var(--gray-300);
+}
+
+.profile-form input:focus,
+.profile-form select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(26,86,168,0.1);
+}
+
+.profile-form input[readonly],
+.profile-form select:disabled {
+  cursor: not-allowed;
+  background: var(--gray-50);
+  color: var(--gray-500);
+  opacity: 0.75;
+}
+
+.profile-form input::placeholder {
+  color: var(--gray-400);
+}
+
+/* Password fields — subtle indicator */
+.profile-form input[type="password"] {
+  letter-spacing: 0.05em;
+}
+
+/* ── Form Actions ──────────────────────────────── */
+.profile-form .form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+
+.profile-form .form-actions .btn {
+  min-width: 140px;
+  justify-content: center;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+}
+
+/* ── Loading State ─────────────────────────────── */
+.profile-card .loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 24px;
+  color: var(--gray-500);
+  font-size: 0.9rem;
+}
+
+.profile-card .spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Error State ───────────────────────────────── */
+.profile-card .error-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--danger);
+  font-size: 0.95rem;
+  background: #fef2f2;
+  border-radius: var(--radius);
+  border: 1px solid #fecaca;
+}
+
+/* ── Responsive ────────────────────────────────── */
+@media (max-width: 768px) {
+  .profile-card {
+    padding: 20px 16px;
+  }
+
+   .profile-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .profile-header .profile-avatar {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    font-size: 1.4rem;
+  }
+
+  .profile-form .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-form .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .profile-form .form-actions .btn {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-card {
+    padding: 16px 12px;
+    border-radius: 8px;
+  }
+
+  .profile-header .profile-avatar {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    font-size: 1.2rem;
+  }
+
+  .profile-info h2 {
+    font-size: 1.1rem;
+  }
+}

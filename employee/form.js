@@ -1,7 +1,14 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('PEGAWAI');
   const authenticated = await initAuth();
   if (!authenticated) return;
+
+  let userRole = null;
+  try { userRole = requireRole('PEGAWAI'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
+    return;
+  }
 
   document.getElementById('userName').textContent = currentUser.nama;
   document.getElementById('roleBadge').textContent = roleName(currentUser.role);
@@ -189,75 +196,237 @@ function escapeHtml(text) {
 }
 
 async function saveDraft() {
-  const bulanTahun = document.getElementById('bulanTahun').value;
+  const bulanTahun =
+    document.getElementById('bulanTahun').value;
+
   if (!bulanTahun) {
-    showNotification('Periode bulan/tahun wajib diisi', 'error');
-    return;
+    showNotification(
+      'Periode bulan/tahun wajib diisi',
+      'error'
+    );
+    return false;
   }
 
-  const { bulan, tahun } = parseMonthYear(bulanTahun);
-  const activities = gatherActivities();
-  const capaian = document.getElementById('capaian').value.trim();
+  const { bulan, tahun } =
+    parseMonthYear(bulanTahun);
+
+  const activities =
+    gatherActivities();
+
+  const capaian =
+    document
+      .getElementById('capaian')
+      .value
+      .trim();
 
   if (!capaian) {
-    showNotification('Capaian pekerjaan wajib diisi', 'error');
-    return;
+    showNotification(
+      'Capaian pekerjaan wajib diisi',
+      'error'
+    );
+    return false;
   }
 
-  // Collect saved lampiran
-  const lampiranEl = document.getElementById('lampiranData');
-  const lampiran = lampiranEl ? JSON.parse(lampiranEl.value || '[]') : [];
+  // Ambil data lampiran yang sudah di-upload
+  const lampiranEl =
+    document.getElementById('lampiranData');
+
+  const lampiran =
+    lampiranEl
+      ? JSON.parse(lampiranEl.value || '[]')
+      : [];
+
+  const namaBulan = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember'
+  ];
 
   const data = {
-    judul: `Laporan ${['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][bulan-1]} ${tahun}`,
-    bulan, tahun,
-    isi_kegiatan: activities.length > 0 ? JSON.stringify(activities) : null,
+    judul:
+      `Laporan ${namaBulan[bulan - 1]} ${tahun}`,
+
+    bulan,
+    tahun,
+
+    isi_kegiatan:
+      activities.length > 0
+        ? JSON.stringify(activities)
+        : null,
+
     capaian,
-    kendala: document.getElementById('kendala').value.trim(),
-    tindak_lanjut: document.getElementById('tindakLanjut').value.trim(),
-    rencana_bulan_depan: document.getElementById('rencana').value.trim(),
-    lampiran: lampiran.length > 0 ? lampiran : null,
-    status: 'draft'
+
+    kendala:
+      document
+        .getElementById('kendala')
+        .value
+        .trim(),
+
+    tindak_lanjut:
+      document
+        .getElementById('tindakLanjut')
+        .value
+        .trim(),
+
+    rencana_bulan_depan:
+      document
+        .getElementById('rencana')
+        .value
+        .trim(),
+
+    lampiran:
+      lampiran.length > 0
+        ? lampiran
+        : null
   };
 
   try {
-    const id = document.getElementById('laporanId').value;
+    const laporanIdEl =
+      document.getElementById('laporanId');
+
+    const id =
+      laporanIdEl.value;
+
     let result;
+
     if (id) {
-      result = await apiFetch(`/api/laporan/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      // Update draft / laporan revisi
+      result = await apiFetch(
+        `/api/laporan/${id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(data)
+        }
+      );
     } else {
-      result = await apiFetch('/api/laporan', { method: 'POST', body: JSON.stringify(data) });
+      // Buat draft baru
+      result = await apiFetch(
+        '/api/laporan',
+        {
+          method: 'POST',
+          body: JSON.stringify(data)
+        }
+      );
     }
-    if (result.success) {
-      showNotification('Draft berhasil disimpan!', 'success');
-      if (!id) {
-        document.getElementById('laporanId').value = result.data.id;
-      }
+
+    if (!result.success) {
+      showNotification(
+        result.message ||
+          'Gagal menyimpan laporan',
+        'error'
+      );
+
+      return false;
     }
+
+    // Jika laporan baru dibuat,
+    // simpan ID-nya untuk proses submit.
+    if (!id && result.data?.id) {
+      laporanIdEl.value =
+        result.data.id;
+    }
+
+    showNotification(
+      'Draft berhasil disimpan!',
+      'success'
+    );
+
+    return true;
+
   } catch (err) {
-    showNotification('Gagal menyimpan draft', 'error');
+    console.error(
+      'Save draft error:',
+      err
+    );
+
+    showNotification(
+      'Gagal menyimpan draft',
+      'error'
+    );
+
+    return false;
   }
 }
 
-document.getElementById('laporanForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  await saveDraft();
+document
+  .getElementById('laporanForm')
+  .addEventListener(
+    'submit',
+    async (e) => {
+      e.preventDefault();
 
-  const id = document.getElementById('laporanId').value;
-  if (id) {
-    try {
-      const result = await apiFetch(`/api/laporan/${id}/submit`, { method: 'POST' });
-      if (result.success) {
-        showNotification('Laporan berhasil diajukan!', 'success');
-        window.location.href = '/employee/laporan.html';
+      // Simpan/update laporan terlebih dahulu
+      const saved =
+        await saveDraft();
+
+      // Jangan submit kalau proses save gagal
+      if (!saved) {
+        return;
       }
-    } catch (err) {
-      showNotification('Gagal mengajukan laporan', 'error');
+
+      const id =
+        document
+          .getElementById('laporanId')
+          .value;
+
+      if (!id) {
+        showNotification(
+          'Laporan belum memiliki ID',
+          'error'
+        );
+
+        return;
+      }
+
+      try {
+        const result =
+          await apiFetch(
+            `/api/laporan/${id}/submit`,
+            {
+              method: 'POST'
+            }
+          );
+
+        if (!result.success) {
+          showNotification(
+            result.message ||
+              'Gagal mengajukan laporan',
+            'error'
+          );
+
+          return;
+        }
+
+        showNotification(
+          'Laporan berhasil diajukan!',
+          'success'
+        );
+
+        window.location.href =
+          '/employee/laporan.html';
+
+      } catch (err) {
+        console.error(
+          'Submit laporan error:',
+          err
+        );
+
+        showNotification(
+          'Gagal mengajukan laporan',
+          'error'
+        );
+      }
     }
-  } else {
-    showNotification('Silakan simpan draft terlebih dahulu', 'error');
-  }
-});
+  );
 
 async function loadReport(id) {
   try {

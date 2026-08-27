@@ -124,8 +124,7 @@
     });
     document.addEventListener('click', function () { dropdown.classList.add('hidden'); });
     [
-      { label: 'Manajemen Pengguna', href: '/superadmin/pengguna.html' },
-      { label: 'Verifikasi', href: '/superadmin/verifikasi.html' }
+      { label: 'Manajemen Pengguna', href: '/superadmin/pengguna.html' }, 
     ].forEach(function (item) {
       var li = document.createElement('li');
       var a = document.createElement('a');

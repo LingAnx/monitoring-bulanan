@@ -8,9 +8,16 @@ const pageSize = 10;
 let allReports = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('PEGAWAI');
   const authenticated = await initAuth();
   if (!authenticated) return;
+
+  let userRole = null;
+  try { userRole = requireRole('PEGAWAI'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
+    return;
+  }
 
   initEmployeePage('Laporan Saya');
 
@@ -35,7 +42,7 @@ async function loadNotifications() {
       const dot = document.getElementById('notifDot');
 
       if (dot) {
-        dot.classList.toggle('hidden, count === 0');
+        dot.classList.toggle('hidden', count === 0);
       }
     }
   } catch (err) {
@@ -181,7 +188,7 @@ function getMonthName(month) {
 }
 
 function canEdit(status) {
-  return ['draft', 'diajukan', 'revisi_admin', 'revisi_kantor'].includes(status);
+  return ['draft', 'revisi_admin', 'revisi_kantor'].includes(status);
 }
 
 function showDetail(id) {

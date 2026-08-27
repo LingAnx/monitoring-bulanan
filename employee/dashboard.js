@@ -3,9 +3,16 @@
 // ══════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('PEGAWAI');
   const authenticated = await initAuth();
   if (!authenticated) return;
+
+  let userRole = null;
+  try { userRole = requireRole('PEGAWAI'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
+    return;
+  }
 
   // Initialize layout (sidebar + topbar)
   initEmployeePage('Dashboard');

@@ -6,12 +6,13 @@
   <title>Profil Saya - KSOP</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/laporan.css">
   <link rel="stylesheet" href="/profil.css?v=2">
   
 </head>
 <body>
-  <div class="layout admin-section-layout" id="layout">
-    <!-- Sidebar (managed by admin-section-layout.js) -->
+  <div class="layout" id="layout">
+    <!-- Sidebar (managed by employee-layout.js) -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
@@ -27,61 +28,27 @@
       <div class="sidebar-footer"></div>
     </aside>
 
-    <!-- Main Area -->
-    <div class="main-area admin-section-content" id="mainArea">
-      <!-- Topbar (managed by admin-section-layout.js) -->
-      <header class="topbar" id="topbar"></header>
+<!-- Main Area -->
+<div class="main-area" id="mainArea">
 
-      <!-- Content -->
-      <main class="admin-content">
-        <div class="row">
-          <div class="col profile-card">
-            <div class="profile-header">
-              <div class="profile-avatar" id="avatarInitials">?</div>
-              <div class="profile-info">
-                <h2 class="profile-name" id="profilNama">-</h2>
-                <p class="profile-role" id="profilRole">-</p>
-                <p class="profile-seksi" id="profilSeksi">-</p>
-              </div>
-            </div>
-            <div class="profile-details">
-              <div class="detail-row"><span class="detail-label">Nama</span><span id="infoNama">-</span></div>
-              <div class="detail-row"><span class="detail-label">NIP</span><span id="infoNip">-</span></div>
-              <div class="detail-row"><span class="detail-label">Username</span><span id="infoUsername">-</span></div>
-              <div class="detail-row"><span class="detail-label">Jabatan</span><span id="infoJabatan">-</span></div>
-              <div class="detail-row"><span class="detail-label">Seksi</span><span id="infoSeksi">-</span></div>
-              <div class="detail-row"><span class="detail-label">Status</span><span id="infoStatus">-</span></div>
-              <div class="detail-row"><span class="detail-label">Terdaftar Sejak</span><span id="infoCreated">-</span></div>
-            </div>
-          </div>
-          <div class="col edit-card">
-            <h3 class="edit-title">Edit Profil</h3>
-            <form id="profilForm" onsubmit="saveProfile(event)">
-              <div class="form-group">
-                <label for="editNama">Nama Lengkap</label>
-                <input type="text" id="editNama" name="editNama" required placeholder="Masukkan nama lengkap">
-              </div>
-              <div class="form-group">
-                <label for="editNip">NIP</label>
-                <input type="text" id="editNip" name="editNip" placeholder="Masukkan NIP">
-              </div>
-              <div class="form-group">
-                <label>Password Baru (kosongkan jika tidak diubah)</label>
-                <input type="password" id="editPassword" placeholder="Minimal 6 karakter">
-              </div>
-              <div class="form-actions">
-                <button type="button" class="btn btn-outline" onclick="resetForm()">Batal</button>
-                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </main>
+  <!-- Topbar managed by employee-layout.js -->
+  <header class="topbar" id="topbar"></header>
+
+  <main class="main-content">
+    <div id="profileContent" class="profile-card">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Memuat profil...</p>
+      </div>
     </div>
+  </main>
 
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  </div>
+</div>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+</div> 
 
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>

@@ -46,7 +46,7 @@ router.get('/', authenticateToken, requireRole('SUPERADMIN'), async (req, res) =
         "SELECT COUNT(*) AS cnt FROM laporan WHERE status = 'disetujui'"
       ),
       pool.query(
-        "SELECT COUNT(*) AS cnt FROM laporan WHERE status = 'menunggu_verifikasi'"
+        "SELECT COUNT(*) AS cnt FROM laporan WHERE status = 'diajukan'"
       ),
       pool.query(
         "SELECT COUNT(*) AS cnt FROM laporan WHERE status = 'revisi_admin'"

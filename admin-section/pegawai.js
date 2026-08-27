@@ -8,9 +8,16 @@ const pageSize = 10;
 let allPegawai = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('ADMIN_SEKSI');
   const authenticated = await initAuth();
   if (!authenticated) return;
+
+  let userRole = null;
+  try { userRole = requireRole('ADMIN_SEKSI'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
+    return;
+  }
 
   initAdminSectionPage('Data Pegawai');
   await loadPegawai();

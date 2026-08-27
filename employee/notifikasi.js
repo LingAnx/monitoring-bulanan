@@ -1,15 +1,21 @@
 // ══════════════════════════════════════════════════
 // NOTIFIKASI - Shared Layout Version
-// Uses admin-section-layout.js for sidebar/topbar
+// Uses EmployeeLayout for sidebar/topbar
 // ══════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('PEGAWAI');
   const authenticated = await initAuth();
   if (!authenticated) return;
 
-  if (!isAdminSeksi()) {
-    window.location.href = '/employee/dashboard.html';
+  let userRole = null;
+  try {
+      requireRole('PEGAWAI');
+     } catch (e) {
+    if (e.message === 'AUTH_REQUIRED') {
+      window.location.href = '/login.html';
+    } else {
+      redirectToDashboard(AuthStore.getRole());
+    }
     return;
   }
 

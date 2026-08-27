@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole} = require('../middleware/auth');
 
 // GET /api/pegawai - List all pegawai in admin's section
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken,requireRole('ADMIN_SEKSI'), async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.id, u.nama, u.nip, u.username, u.role, u.is_active,
@@ -27,7 +27,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET /api/pegawai/deadline - Check deadline compliance per month
-router.get('/deadline', authenticateToken, async (req, res) => {
+router.get('/deadline', authenticateToken, requireRole('ADMIN_SEKSI'),  async (req, res) => {
   try {
     const { bulan, tahun } = req.query;
     const b = bulan ? parseInt(bulan) : new Date().getMonth() + 1;

@@ -18,7 +18,21 @@ const authenticateToken = async (req, res, next) => {
     }
     
     const decoded = jwt.verify(token, JWT_SECRET);
-    const userResult = await pool.query('SELECT id, username, nama, role, id_seksi FROM users WHERE id = $1', [decoded.userId]);
+    const userResult = await pool.query(`
+      SELECT
+        u.id,
+        u.username,
+        u.nama,
+        u.nip,
+        u.role,
+        u.id_seksi,
+        u.is_active,
+        u.created_at,
+        s.nama_seksi
+      FROM users u
+      LEFT JOIN seksi s ON s.id = u.id_seksi
+      WHERE u.id = $1
+    `, [decoded.userId]);
     
     if (userResult.rows.length === 0) {
       return res.status(401).json({ success: false, message: 'User tidak ditemukan' });

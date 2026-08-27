@@ -1,8 +1,15 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('SUPERADMIN');
-  if (!isAdmin()) { window.location.href = '/superadmin/dashboard.html'; return; }
   const authenticated = await initAuth();
   if (!authenticated) return;
+
+  let userRole = null;
+  try { userRole = requireRole('SUPERADMIN'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
+    return;
+  }
+  if (!isAdmin()) { window.location.href = '/superadmin/dashboard.html'; return; }
 
   document.getElementById('userName').textContent = currentUser.nama;
   document.getElementById('roleBadge').textContent = 'Admin';

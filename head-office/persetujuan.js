@@ -1,8 +1,15 @@
 // approve.js - Approval & Monitoring for Kepala Kantor
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('KEPALA_KANTOR');
   const authenticated = await initAuth();
   if (!authenticated) return;
+
+  let userRole = null;
+  try { userRole = requireRole('KEPALA_KANTOR'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
+    return;
+  }
 
   if (!isKepala()) {
     window.location.href = '/head-office/dashboard.html';

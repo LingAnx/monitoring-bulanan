@@ -4,15 +4,17 @@
 // ══════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('KEPALA_KANTOR');
   const authenticated = await initAuth();
   if (!authenticated) return;
 
-  if (!isAdminSeksi()) {
-    window.location.href = '/head-office/dashboard.html';
+  let userRole = null;
+  try { userRole = requireRole('KEPALA_KANTOR'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
     return;
   }
-
+  
   initHeadOfficePage('Notifikasi');
   await loadNotifications();
   startPolling();

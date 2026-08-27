@@ -8,11 +8,18 @@ const pageSize = 10;
 let allReports = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('ADMIN_SEKSI');
   const authenticated = await initAuth();
   if (!authenticated) return;
 
-  initAdminSectionPage('Semua Laporan');
+  let userRole = null;
+  try { userRole = requireRole('ADMIN_SEKSI'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
+    return;
+  }
+
+  initAdminSectionPage('Laporan');
 
   // Apply canonical navigation filter from URL, e.g. ?status=diajukan
   const initialStatus = new URLSearchParams(window.location.search).get('status');
@@ -136,7 +143,6 @@ function renderLaporan(reports) {
             <td>${getStatusLabel(r.status)}</td>
             <td>
               <button type="button" class="btn btn-sm btn-primary" onclick="showDetail(${r.id})">👁️ Detail</button>
-              ${canEdit(r.status) ? `<button type="button" class="btn btn-sm btn-warning" onclick="editLaporan(${r.id})">✏️ Edit</button>` : ''}
               ${canVerify(r.status) ? `
                 <button type="button" class="btn btn-sm btn-success" onclick="verifyLaporan(${r.id}, 'approve')">✓ Verifikasi</button>
                 <button type="button" class="btn btn-sm btn-danger" onclick="verifyLaporan(${r.id}, 'revisi')">✏️ Revisi</button>
@@ -200,19 +206,11 @@ function getMonthName(month) {
   return months[month] || '';
 }
 
-function canEdit(status) {
-  return ['draft', 'diajukan', 'revisi_admin', 'revisi_kantor'].includes(status);
-}
-
 function canVerify(status) {
   return status === 'diajukan';
 }
 
 function showDetail(id) {
-  window.location.href = `/admin-section/laporan.html?id=${id}`;
-}
-
-function editLaporan(id) {
   window.location.href = `/admin-section/laporan.html?id=${id}`;
 }
 
