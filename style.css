@@ -201,8 +201,9 @@ body {
 }
 
 .stat-card.green { border-left-color: var(--success); }
-.stat-card.yellow { border-left-color: var(--warning); }
-.stat-card.red { border-left-color: var(--danger); }
+.stat-card.blue { border-left-color: var(--primary); }
+.stat-card.orange { border-left-color: #f97316; }
+.stat-card.purple { border-left-color: #8b5cf6; }
 
 .stat-value {
   font-size: 2rem;
@@ -310,6 +311,8 @@ body {
 .badge-disetujui { background: #10b981; color: #fff; }
 .badge-revisi-admin { background: #fee2e2; color: #991b1b; }
 .badge-revisi-kantor { background: #fce7f3; color: #9d174d; }
+.badge-revisi { background: #fee2e2; color: #991b1b; }
+.badge-approved { background: #10b981; color: #fff; }
 .badge-ditolak { background: #fecaca; color: #7f1d1d; }
 
 /* Form styles */

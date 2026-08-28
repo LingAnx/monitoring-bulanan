@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manajemen Seksi - Superadmin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/laporan.css?v=4">
+</head>
+<body>
+  <div class="layout" id="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">KSOP <span>Cirebon</span></div>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+      <div class="sidebar-footer"></div>
+    </aside>
+    <div class="main-area" id="mainArea">
+      <header class="topbar" id="topbar"></header>
+      <main class="main-content">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title" id="pageTitle">Manajemen Seksi</h3>
+            <button type="button" class="btn btn-primary btn-sm" onclick="showSeksiModal()">+ Tambah Seksi</button>
+          </div>
+          <div id="seksiContent">
+            <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  </div>
+
+  <div class="modal-overlay" id="seksiModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title" id="seksiModalTitle">Tambah Seksi</h3>
+        <button type="button" class="modal-close" onclick="closeSeksiModal()">&times;</button>
+      </div>
+      <form id="seksiForm" onsubmit="saveSeksi(event)">
+        <input type="hidden" id="seksiId" value="">
+        <div class="form-group">
+          <label>Nama Seksi</label>
+          <input type="text" id="seksiNama" required>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" onclick="closeSeksiModal()">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/auth/auth-store.js"></script>
+  <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/navigation/superadmin-navigation.js"></script>
+  <script src="/js/layouts/superadmin-layout.js"></script>
+  <script src="/app.js"></script>
+  <script src="/translations.js"></script>
+  <script src="/superadmin/_layout.js"></script>
+  <script src="/superadmin/seksi.js?v=1"></script>
+</body>
+</html>

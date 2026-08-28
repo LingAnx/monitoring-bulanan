@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════
-   profil.css — Profile page styles for KSOP Cirebon
-   Role-neutral: works for PEGAWAI, ADMIN_SEKSI, KEPALA_KANTOR
+   Profil Page Styles — KSOP Cirebon
+   Role-neutral: PEGAWAI, ADMIN_SEKSI, KEPALA_KANTOR
    ══════════════════════════════════════════════════ */
 
 /* ── Profile Card ──────────────────────────────── */
@@ -91,13 +91,13 @@
 }
 
 /* ── Form Rows ─────────────────────────────────── */
-.profile-form .form-row {
+.form-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
-/* ── Form Group (overrides inherited if needed) ── */
+/* ── Form Group ────────────────────────────────── */
 .profile-form .form-group {
   margin-bottom: 16px;
 }
@@ -113,7 +113,6 @@
 /* ── Inputs & Selects ──────────────────────────── */
 .profile-form input,
 .profile-form select {
-  box-sizing: border-box;
   width: 100%;
   padding: 10px 14px;
   border: 1.5px solid var(--gray-200);
@@ -212,13 +211,13 @@
     padding: 20px 16px;
   }
 
-   .profile-header {
+  .profile-form .profile-header {
     flex-direction: column;
     text-align: center;
     gap: 12px;
   }
 
-  .profile-header .profile-avatar {
+  .profile-form .profile-avatar {
     width: 56px;
     height: 56px;
     min-width: 56px;
@@ -246,7 +245,7 @@
     border-radius: 8px;
   }
 
-  .profile-header .profile-avatar {
+  .profile-form .profile-avatar {
     width: 48px;
     height: 48px;
     min-width: 48px;

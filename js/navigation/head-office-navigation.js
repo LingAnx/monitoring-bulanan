@@ -8,19 +8,19 @@
 
   try { window.HeadOfficeNav = {
     MENU: [
-      { id: 'beranda',      label: 'Dashboard',            href: '/head-office/dashboard.html', icon: '&#9733;' },
+      { id: 'beranda',      label: 'Dashboard',            href: '/head-office/dashboard.html', icon: '★' },
       { group: 'PERSETUJUAN' },
-      { id: 'pending',      label: 'Menunggu Persetujuan', href: '/head-office/persetujuan.html?tab=pending', icon: '&#9203;' },
-      { id: 'revision',     label: 'Perlu Revisi',         href: '/head-office/persetujuan.html?tab=pending&show=revisi', icon: '&#9888;' },
-      { id: 'approved',     label: 'Disetujui',            href: '/head-office/persetujuan.html?tab=history', icon: '&#10003;' },
+      { id: 'pending',      label: 'Menunggu Persetujuan', href: '/head-office/persetujuan.html?tab=pending', icon: '⏳' },
+      { id: 'revision',     label: 'Perlu Revisi',         href: '/head-office/persetujuan.html?tab=pending&show=revisi', icon: '⚠' },
+      { id: 'approved',     label: 'Disetujui',            href: '/head-office/persetujuan.html?tab=history', icon: '✓' },
       { group: 'MONITORING' },
-      { id: 'monitoring',   label: 'Monitoring Seksi',     href: '/head-office/persetujuan.html?tab=monitoring', icon: '&#128065;' },
-      { id: 'all-reports',  label: 'Semua Laporan',        href: '/head-office/persetujuan.html?tab=reports', icon: '&#128196;' },
-      { id: 'archive',      label: 'Arsip Laporan',        href: '/head-office/persetujuan.html?tab=archive', icon: '&#128197;' },
-      { id: 'history',      label: 'Riwayat Persetujuan',  href: '/head-office/persetujuan.html?tab=history', icon: '&#128336;' },
+      { id: 'monitoring',   label: 'Monitoring Seksi',     href: '/head-office/persetujuan.html?tab=monitoring', icon: '🔍' },
+      { id: 'all-reports',  label: 'Semua Laporan',        href: '/head-office/persetujuan.html?tab=reports', icon: '📂' },
+      { id: 'archive',      label: 'Arsip Laporan',        href: '/head-office/persetujuan.html?tab=archive', icon: '📁' },
+      { id: 'history',      label: 'Riwayat Persetujuan',  href: '/head-office/persetujuan.html?tab=history', icon: '🕘' },
       { group: 'LAINNYA' },
-      { id: 'notif',        label: 'Notifikasi',           href: '/head-office/notifikasi.html', icon: '&#128276;', badgeId: 'sidebarNotifBadge' },
-      { id: 'profil',       label: 'Profil Saya',          href: '/head-office/profil.html', icon: '&#9825;' }
+      { id: 'notif',        label: 'Notifikasi',           href: '/head-office/notifikasi.html', icon: '🔔', badgeId: 'sidebarNotifBadge' },
+      { id: 'profil',       label: 'Profil Saya',          href: '/head-office/profil.html', icon: '♡' }
     ],
 
     getActivePage: function (pathname, params) {

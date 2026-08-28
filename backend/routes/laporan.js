@@ -1635,6 +1635,21 @@ router.post(
         });
       }
 
+      /*
+       * Period enforcement: block submit if period is closed.
+       * Only allow submit for active periods.
+       */
+      const periodCheck = await client.query(
+        `SELECT status FROM periode_laporan WHERE bulan = $1 AND tahun = $2`,
+        [laporan.bulan, laporan.tahun]
+      );
+      if (periodCheck.rows.length > 0 && periodCheck.rows[0].status === 'ditutup') {
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          success: false,
+          message: 'Periode laporan untuk bulan/tahun tersebut sudah ditutup'
+        });
+      }
 
       const previousStatus =
         laporan.status;

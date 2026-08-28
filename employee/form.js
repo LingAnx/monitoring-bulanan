@@ -3,27 +3,45 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!authenticated) return;
 
   let userRole = null;
-  try { userRole = requireRole('PEGAWAI'); } catch (e) {
-    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+
+  try {
+    userRole = requireRole('PEGAWAI');
+  } catch (e) {
+    if (
+      e.message === 'AUTH_REQUIRED' ||
+      e.message.startsWith('ACCESS_DENIED')
+    ) {
       window.location.href = '/login.html';
     }
     return;
   }
-
-  document.getElementById('userName').textContent = currentUser.nama;
-  document.getElementById('roleBadge').textContent = roleName(currentUser.role);
 
   if (!isPegawai()) {
     window.location.href = '/employee/dashboard.html';
     return;
   }
 
+  // Render shared Employee sidebar + topbar
+  initEmployeePage('Buat Laporan');
+
+  // Isi informasi user di shared topbar
+  if (window.EmployeeLayout) {
+    EmployeeLayout.setUserInfo(
+      currentUser?.nama,
+      currentUser?.role
+    );
+  }
+
+  // Isi field form
   document.getElementById('nama').value = currentUser.nama;
   document.getElementById('nip').value = currentUser.nip || '';
-  document.getElementById('seksiDisplay').value = currentUser.nama_seksi || 'Belum ditentukan';
+  document.getElementById('seksiDisplay').value =
+    currentUser.nama_seksi || 'Belum ditentukan';
 
   const now = new Date();
-  const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthStr =
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
   document.getElementById('bulanTahun').value = monthStr;
 
   addActivityRow();
@@ -31,6 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const params = new URLSearchParams(window.location.search);
   const editId = params.get('id');
+
   if (editId) {
     loadReport(parseInt(editId));
     loadLampiranPreview(parseInt(editId));

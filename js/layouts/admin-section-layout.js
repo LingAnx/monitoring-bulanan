@@ -64,7 +64,7 @@
         href: item.href,
         'data-page': item.id
       });
-      a.appendChild(el('span', { className: 'nav-icon', innerHTML: item.icon }));
+      a.appendChild(el('span', { className: 'nav-icon', textContent: item.icon }));
       a.appendChild(el('span', { className: 'nav-label', textContent: item.label }));
 
       if (item.badgeId) {
@@ -84,7 +84,7 @@
     footer.innerHTML = '';
     var logout = el('a', { className: 'nav-item logout-item', href: '#' });
     logout.addEventListener('click', function (e) { e.preventDefault(); handleLogout(); });
-    logout.appendChild(el('span', { className: 'nav-icon', textContent: '&#10140;' }));
+    logout.appendChild(el('span', { className: 'nav-icon', textContent: '➜' }));
     logout.appendChild(el('span', { className: 'nav-label', textContent: 'Logout' }));
     footer.appendChild(logout);
 
@@ -104,7 +104,7 @@
       id: 'mobileMenuBtn',
       type: 'button',
       'aria-label': 'Toggle menu',
-      textContent: '&#9776;'
+      textContent: '☰'
     }));
 
     var titleEl = el('div', { className: 'topbar-title-wrap' });
@@ -121,7 +121,7 @@
     right.appendChild(period);
 
     var notifBtn = el('a', { className: 'notif-btn', id: 'notifBtn', href: '/admin-section/notifikasi.html', title: 'Notifikasi' });
-    notifBtn.innerHTML = '&#128276;<span class="notif-badge hidden" id="notifBadge">0</span>';
+    notifBtn.innerHTML = '🔔<span class="notif-badge hidden" id="notifBadge">0</span>';
     right.appendChild(notifBtn);
 
     var profileWrap = el('div', { className: 'profile-wrap' });

@@ -44,17 +44,15 @@
   }
 
   // ── Logout ──────────────────────────────────────────
-function handleLogout() {
-  if (typeof AuthStore !== 'undefined' && AuthStore.logout) {
-    AuthStore.logout();
-    return;
+  function handleLogout() {
+    if (typeof AuthStore !== 'undefined' && AuthStore.logout) {
+      AuthStore.logout();
+      return;
+    }
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    window.location.href = '/login.html';
   }
-
-  // Fallback jika AuthStore gagal dimuat
-  localStorage.removeItem('auth_token');
-  localStorage.removeItem('auth_user');
-  window.location.href = '/login.html';
-}
 
   // ── Render Sidebar ──────────────────────────────────
   function renderSidebar() {
@@ -77,7 +75,7 @@ function handleLogout() {
         href: item.href,
         'data-page': item.id
       });
-      a.appendChild(el('span', { className: 'nav-icon', innerHTML: item.icon }));
+      a.appendChild(el('span', { className: 'nav-icon', textContent: item.icon }));
       a.appendChild(el('span', { className: 'nav-label', textContent: item.label }));
 
       if (item.badgeId) {
@@ -97,7 +95,7 @@ function handleLogout() {
     footer.innerHTML = '';
     var logout = el('a', { className: 'nav-item logout-item', href: '#' });
     logout.addEventListener('click', function (e) { e.preventDefault(); handleLogout(); });
-    logout.appendChild(el('span', { className: 'nav-icon', textContent: '&#10140;' }));
+    logout.appendChild(el('span', { className: 'nav-icon', textContent: '➜' }));
     logout.appendChild(el('span', { className: 'nav-label', textContent: 'Logout' }));
     footer.appendChild(logout);
 
@@ -118,7 +116,7 @@ function handleLogout() {
       id: 'mobileMenuBtn',
       type: 'button',
       'aria-label': 'Toggle menu',
-      textContent: '&#9776;'
+      textContent: '☰'
     }));
 
     var titleWrap = el('div', { className: 'topbar-title-wrap' });
@@ -134,11 +132,14 @@ function handleLogout() {
     right.appendChild(period);
 
     var notifBtn = el('a', { className: 'notif-btn', id: 'notifBtn', href: '/employee/notifikasi.html', title: 'Notifikasi' });
-    notifBtn.innerHTML = '&#128276;<span class="notif-badge hidden" id="notifBadge">0</span>';
+    notifBtn.innerHTML = '🔔<span class="notif-badge hidden" id="notifBadge">0</span>';
     right.appendChild(notifBtn);
 
     var profileWrap = el('div', { className: 'profile-wrap' });
     profileWrap.innerHTML = '<div class="profile-trigger" id="profileTrigger"><span class="profile-avatar" id="profileAvatar">' + (user ? user.nama.charAt(0).toUpperCase() : '-') + '</span><span class="profile-name" id="profileName">' + escapeHtml(user ? user.nama : '-') + '</span></div>';
+    // Create dropdown element so setupProfileDropdown can find it
+    var dropdown = el('ul', { className: 'profile-dropdown hidden', id: 'profileDropdown' });
+    profileWrap.appendChild(dropdown);
     right.appendChild(profileWrap);
 
     topbar.appendChild(left);

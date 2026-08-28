@@ -7,16 +7,16 @@
 
   try { window.EmployeeNav = {
     MENU: [
-      { id: 'beranda',         label: 'Dashboard',        href: '/employee/dashboard.html',        icon: '&#9733;' },
+      { id: 'beranda',         label: 'Dashboard',        href: '/employee/dashboard.html',        icon: '★' },
       { group: 'LAPORAN' },
-      { id: 'laporan',         label: 'Laporan Saya',     href: '/employee/laporan.html',          icon: '&#128196;' },
-      { id: 'buat',            label: 'Buat Laporan',     href: '/employee/form.html?action=create', icon: '&#43;' },
-      { id: 'draft',           label: 'Draft',            href: '/employee/laporan.html?action=draft', icon: '&#128196;', badgeId: 'draftBadge' },
-      { id: 'berjalan',        label: 'Laporan Berjalan', href: '/employee/laporan.html?action=berjalan', icon: '&#9203;', badgeId: 'berjalanBadge' },
-      { id: 'riwayat',         label: 'Riwayat Laporan',  href: '/employee/laporan.html?action=riwayat', icon: '&#128197;' },
+      { id: 'laporan',         label: 'Laporan Saya',     href: '/employee/laporan.html',          icon: '📄' },
+      { id: 'buat',            label: 'Buat Laporan',     href: '/employee/form.html?action=create', icon: '+' },
+      { id: 'draft',           label: 'Draft',            href: '/employee/laporan.html?action=draft', icon: '📄', badgeId: 'draftBadge' },
+      { id: 'berjalan',        label: 'Laporan Berjalan', href: '/employee/laporan.html?action=berjalan', icon: '⏳', badgeId: 'berjalanBadge' },
+      { id: 'riwayat',         label: 'Riwayat Laporan',  href: '/employee/laporan.html?action=riwayat', icon: '📅' },
       { group: 'LAINNYA' },
-      { id: 'notif',           label: 'Notifikasi',       href: '/employee/notifikasi.html',       icon: '&#128276;', badgeId: 'sidebarNotifBadge' },
-      { id: 'profil',          label: 'Profil Saya',      href: '/employee/profil.html',           icon: '&#9825;' }
+      { id: 'notif',           label: 'Notifikasi',       href: '/employee/notifikasi.html',       icon: '🔔', badgeId: 'sidebarNotifBadge' },
+      { id: 'profil',          label: 'Profil Saya',      href: '/employee/profil.html',           icon: '♡' }
     ],
 
     getMenu: function (activePage) {

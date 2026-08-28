@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data & Backup - Superadmin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/laporan.css?v=4">
+</head>
+<body>
+  <div class="layout" id="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">KSOP <span>Cirebon</span></div>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+      <div class="sidebar-footer"></div>
+    </aside>
+    <div class="main-area" id="mainArea">
+      <header class="topbar" id="topbar"></header>
+      <main class="main-content">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title" id="pageTitle">Data & Backup</h3>
+            <div style="display:flex;gap:8px">
+              <button type="button" class="btn btn-outline btn-sm" onclick="exportUsers()">Ekspor Pengguna</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="exportReports()">Ekspor Laporan</button>
+              <button type="button" class="btn btn-primary btn-sm" onclick="createBackup()">Buat Backup Baru</button>
+            </div>
+          </div>
+          <div id="backupContent">
+            <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  </div>
+  <script src="/js/auth/auth-store.js"></script>
+  <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/navigation/superadmin-navigation.js"></script>
+  <script src="/js/layouts/superadmin-layout.js"></script>
+  <script src="/app.js"></script>
+  <script src="/translations.js"></script>
+  <script src="/superadmin/_layout.js"></script>
+  <script src="/superadmin/backup.js?v=1"></script>
+</body>
+</html>
