@@ -125,17 +125,23 @@ async function loadDashboard() {
       </div>
     `;
 
-    renderCharts(laporan);
-  } catch (error) {
-    console.error('Gagal memuat dashboard Superadmin:', error);
-    main.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">&#9888;&#65039;</div>
-        <div class="empty-state-text">Gagal memuat data dashboard.</div>
-      </div>
-    `;
-  }
-}
+    if (typeof Chart !== 'undefined') {
+      renderCharts(laporan);
+    } else {
+      console.error('Chart.js tidak tersedia. Grafik tidak dapat dirender.');
+    }
+    
+      } catch (error) {
+        console.error('Gagal memuat dashboard Superadmin:', error);
+    
+        main.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <div class="empty-state-text">Gagal memuat data dashboard.</div>
+          </div>
+        `;
+      }
+    } 
 
 function renderCharts(laporan) {
   // Destroy existing charts to prevent duplication
@@ -208,7 +214,10 @@ function renderCharts(laporan) {
     var trendData = laporan.per_bulan_tahun || [];
     var trendLabels = [], trendCounts = [];
     trendData.forEach(function(p) {
-      var label = (T && T.months && T.months[p.bulan]) ? T.months[p.bulan] + ' ' + p.tahun : p.bulan + '/' + p.tahun;
+      var label =
+      (typeof T !== 'undefined' && T.months && T.months[p.bulan])
+        ? T.months[p.bulan] + ' ' + p.tahun
+        : p.bulan + '/' + p.tahun; 
       trendLabels.push(label);
       trendCounts.push(parseInt(p.jumlah));
     });

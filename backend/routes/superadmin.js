@@ -319,19 +319,38 @@ router.post('/periode/:id/open', authenticateToken, requireRole('SUPERADMIN'), a
 // ── Settings ─────────────────────────────────────────────────────────────
 router.get('/settings', authenticateToken, requireRole('SUPERADMIN'), async (req, res) => {
   try {
-    const result = await pool.query('SELECT key, value, update_at FROM settings  ORDER BY key');
+    const result = await pool.query(
+    'SELECT key, value, updated_at FROM settings ORDER BY key'
+    );
+
     const settings = {};
+
     result.rows.forEach((row) => {
       let val = row.value;
+
       if (val === 'true') val = true;
       else if (val === 'false') val = false;
-      else if (!isNaN(Number(val)) && val.trim() !== '') val = Number(val);
-      settings[row.key] = { value: val, description, updated_at: row.updated_at };
+      else if (!isNaN(Number(val)) && val.trim() !== ''){
+        val = Number(val);
+      }
+
+      settings[row.key] = {
+        value: val, 
+        updated_at: row.updated_at
+      };
     });
-    res.json({ success: true, data: settings });
+
+    res.json({
+      success: true,
+      data: settings
+    });
   } catch (error) {
-    console.error('Error fetching settings:', error);
-    res.status(500).json({ success: false, message: 'Gagal memuat pengaturan (table settings mungkin belum dibuat)' });
+    console.error('ERROR fetching settings', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Gagal memuat pengaturan'
+    });
   }
 });
 

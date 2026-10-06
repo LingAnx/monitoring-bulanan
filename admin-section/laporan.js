@@ -21,15 +21,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initAdminSectionPage('Laporan');
 
-  // Apply canonical navigation filter from URL, e.g. ?status=diajukan
-  const initialStatus = new URLSearchParams(window.location.search).get('status');
-  const statusFilter = document.getElementById('filterStatus');
-  if (initialStatus && statusFilter) statusFilter.value = initialStatus;
+// Read URL parameters
+const urlParams = new URLSearchParams(window.location.search);
+const initialStatus = urlParams.get('status');
+const laporanId = urlParams.get('id');
 
-  await loadNotifications();
-  await loadLaporan();
+const statusFilter = document.getElementById('filterStatus');
 
-  // Filter/search button listeners
+if (initialStatus && statusFilter) {
+  statusFilter.value = initialStatus;
+}
+
+await loadNotifications();
+
+if (laporanId) {
+  await loadLaporanDetail(laporanId);
+  return;
+}
+
+await loadLaporan();
+
+   // Filter/search button listeners
   document.getElementById('filterBtn')?.addEventListener('click', () => {
     currentPage = 1;
     loadLaporan();
@@ -208,6 +220,126 @@ function getMonthName(month) {
 
 function canVerify(status) {
   return status === 'diajukan';
+}
+
+async function loadLaporanDetail(id) {
+  const container = document.getElementById('laporanContent');
+
+  if (!container) return;
+
+  try {
+    container.innerHTML = `
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Memuat detail laporan...</p>
+      </div>
+    `;
+
+    const result = await apiFetch(`/api/laporan/${id}`);
+
+    if (!result.success) {
+      throw new Error(result.message || 'Gagal memuat detail laporan');
+    }
+
+    const laporan = result.data;
+
+    const pageTitle = document.getElementById('pageTitle');
+
+    if (pageTitle) {
+      pageTitle.textContent = 'Detail Laporan';
+    }
+
+    // Sembunyikan filter/export ketika sedang melihat detail
+    const actionButtons = document.querySelector('.action-buttons');
+
+    if (actionButtons) {
+      actionButtons.style.display = 'none';
+    }
+
+    container.innerHTML = `
+      <div class="report-detail">
+
+        <div class="detail-header">
+          <div>
+            <h3>${escapeHtmlDetail(laporan.judul || 'Laporan')}</h3>
+            <p class="text-muted">
+              ${getMonthName(laporan.bulan)} ${laporan.tahun}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-outline"
+            onclick="window.location.href='/admin-section/laporan.html'">
+            ← Kembali
+          </button>
+        </div>
+
+        <div class="detail-grid">
+
+          <div class="detail-item">
+            <strong>Judul</strong>
+            <p>${escapeHtmlDetail(laporan.judul || '-')}</p>
+          </div>
+
+          <div class="detail-item">
+            <strong>Bulan / Tahun</strong>
+            <p>${getMonthName(laporan.bulan)} ${laporan.tahun}</p>
+          </div>
+
+          <div class="detail-item">
+            <strong>Status</strong>
+            <div>${getStatusLabel(laporan.status)}</div>
+          </div>
+
+          <div class="detail-item">
+            <strong>Tanggal Dibuat</strong>
+            <p>${formatDate(laporan.created_at)}</p>
+          </div>
+
+          <div class="detail-item detail-full">
+            <strong>Isi Laporan</strong>
+            <p>${escapeHtmlDetail(laporan.isi || '-')}</p>
+          </div>
+
+          ${
+            laporan.catatan_admin
+              ? `
+                <div class="detail-item detail-full">
+                  <strong>Catatan Admin</strong>
+                  <p>${escapeHtmlDetail(laporan.catatan_admin)}</p>
+                </div>
+              `
+              : ''
+          }
+
+        </div>
+
+      </div>
+    `;
+
+  } catch (err) {
+    console.error('Failed to load report detail:', err);
+
+    container.innerHTML = `
+      <div class="error-state">
+        <p>Gagal memuat detail laporan.</p>
+
+        <button
+          type="button"
+          class="btn btn-outline"
+          onclick="window.location.href='/admin-section/laporan.html'">
+          ← Kembali
+        </button>
+      </div>
+    `;
+  }
+}
+
+function escapeHtmlDetail(value) {
+  const div = document.createElement('div');
+  div.textContent = String(value ?? '');
+  return div.innerHTML;
 }
 
 function showDetail(id) {

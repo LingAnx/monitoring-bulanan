@@ -77,8 +77,6 @@
     logout.appendChild(el('span', { className: 'nav-icon', textContent:'➜' }));
     logout.appendChild(el('span', { className: 'nav-label', textContent: 'Logout' }));
     footer.appendChild(logout);
-
-    setupMobileMenu();
   }
 
   function renderTopbar(pageTitle) {
@@ -147,31 +145,57 @@
     var overlay = document.getElementById('sidebarOverlay');
     var menuBtn = document.getElementById('mobileMenuBtn');
     var toggleBtn = document.getElementById('sidebarToggle');
-    function openSidebar() {
-      if (sidebar) sidebar.classList.add('open');
-      if (overlay) overlay.classList.add('active');
+
+    function toggleSidebar() {
+      if(!sidebar) return;
+      
+      sidebar.classList.toggle('open');
+
+      if(overlay) {
+        if (sidebar.classList.contains('open')) {
+          overlay.classList.add('active');
+        } else {
+          overlay.classList.remove('active');
+        }
+      }
     }
+
     function closeSidebar() {
       if (sidebar) sidebar.classList.remove('open');
       if (overlay) overlay.classList.remove('active');
     }
-    if (menuBtn) menuBtn.addEventListener('click', openSidebar);
-    if (toggleBtn) toggleBtn.addEventListener('click', openSidebar);
-    if (overlay) overlay.addEventListener('click', closeSidebar);
+
+    if (menuBtn) {
+      menuBtn.addEventListener('click', toggleSidebar);
+    }
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', toggleSidebar);
+    }
+
+    if (overlay) {
+      overlay.addEventListener('click', closeSidebar);
+    }
   }
 
   window.SuperadminLayout = {
     init: function (pageTitle) {
       renderSidebar();
       renderTopbar(pageTitle || 'Dashboard');
+      setupMobileMenu();
     },
+
     setUserInfo: function (name, role) {
       var el2 = document.getElementById('userName');
       var roleEl = document.getElementById('roleBadge');
       var avatarEl = document.getElementById('profileAvatar');
       var profileNameEl = document.getElementById('profileName');
       if (el2) el2.textContent = name || '-';
-      if (roleEl) roleEl.textContent = role ? (T && T.role ? T.role[role] || role : role) : '-';
+      if (roleEl) {
+        roleEl.textContent = role
+          ? (typeof T !== 'undefined' && T.role ? T.role[role] || role : role)
+          : '-';
+      }
       if (avatarEl) avatarEl.textContent = (name || '-').charAt(0).toUpperCase();
       if (profileNameEl) profileNameEl.textContent = name || '-';
     },
