@@ -40,6 +40,14 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
       // Redirect to role-appropriate dashboard
       redirectToDashboard(data.user.role);
     } else {
+      // Password change required: redirect to change-password flow.
+      // User cannot proceed to dashboard until they set a new password.
+      if (data.code === 'PASSWORD_CHANGE_REQUIRED') {
+        _auth('clear');
+        _auth('setCurrentUser', { username, must_change_password: true });
+        window.location.href = '/change-password.html';
+        return;
+      }
       errEl.textContent = data.message || T.messages.gagal_login;
       errEl.className = 'error-message show';
       btn.disabled = false;

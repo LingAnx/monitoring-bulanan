@@ -3,6 +3,53 @@ const router = express.Router();
 const pool = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
+const VALID_STATUSES = [
+  'draft',
+  'diajukan',
+  'diteruskan',
+  'revisi_admin',
+  'revisi_kantor',
+  'disetujui',
+];
+
+function parseId(value) {
+  const id = Number.parseInt(value, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return null;
+  }
+  return id;
+}
+
+function parseMonthQuery(value, fallback) {
+  if (value === undefined || value === null || String(value).trim() === '') {
+    return { value: fallback, error: null };
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 12) {
+    return { value: null, error: 'Bulan tidak valid' };
+  }
+  return { value: parsed, error: null };
+}
+
+function parseYearQuery(value, fallback) {
+  if (value === undefined || value === null || String(value).trim() === '') {
+    return { value: fallback, error: null };
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 2000 || parsed > 2100) {
+    return { value: null, error: 'Tahun tidak valid' };
+  }
+  return { value: parsed, error: null };
+}
+
+function parsePositiveId(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return null;
+  }
+  return parsed;
+}
+
 // GET /api/kepala/dashboard - Complete dashboard data for Kepala Kantor
 router.get('/dashboard', authenticateToken, requireRole('KEPALA_KANTOR'), async (req, res) => {
   try {
@@ -181,7 +228,11 @@ router.get('/dashboard', authenticateToken, requireRole('KEPALA_KANTOR'), async 
 // GET /api/kepala/reports - All reports with filters
 router.get('/reports', authenticateToken, requireRole('KEPALA_KANTOR'), async (req, res) => {
   try {
-    const { bulan, tahun, status, search, limit = 50 } = req.query;
+    const { bulan, tahun, status, search } = req.query;
+    let limit = parseInt(req.query.limit);
+    if (!Number.isInteger(limit) || limit < 1) limit = 50;
+    limit = Math.min(limit, 200);
+
     let query = `
       SELECT l.*, u.nama as user_nama, u.nip, s.nama_seksi
       FROM laporan l
@@ -191,19 +242,42 @@ router.get('/reports', authenticateToken, requireRole('KEPALA_KANTOR'), async (r
     const params = [];
     const conditions = [];
 
-    if (bulan) { conditions.push('l.bulan = $' + (params.length + 1)); params.push(parseInt(bulan)); }
-    if (tahun) { conditions.push('l.tahun = $' + (params.length + 1)); params.push(parseInt(tahun)); }
-    if (status) { conditions.push('l.status = $' + (params.length + 1)); params.push(status); }
-    if (search) { conditions.push('(l.judul ILIKE $' + (params.length + 1) + " OR u.nama ILIKE $" + (params.length + 1) + ')'); params.push('%' + search + '%'); }
+    if (bulan) {
+      const b = parseInt(bulan);
+      if (!Number.isInteger(b) || b < 1 || b > 12) {
+        return res.status(400).json({ success: false, message: 'Bulan tidak valid' });
+      }
+      conditions.push('l.bulan = $' + (params.length + 1));
+      params.push(b);
+    }
+    if (tahun) {
+      const t = parseInt(tahun);
+      if (!Number.isInteger(t) || t < 2000 || t > 2100) {
+        return res.status(400).json({ success: false, message: 'Tahun tidak valid' });
+      }
+      conditions.push('l.tahun = $' + (params.length + 1));
+      params.push(t);
+    }
+    if (status) {
+      if (!VALID_STATUSES.includes(status)) {
+        return res.status(400).json({ success: false, message: 'Status tidak valid' });
+      }
+      conditions.push('l.status = $' + (params.length + 1));
+      params.push(status);
+    }
+    if (search && String(search).trim()) {
+      conditions.push('(l.judul ILIKE $' + (params.length + 1) + ' OR u.nama ILIKE $' + (params.length + 1) + ')');
+      params.push('%' + String(search).trim().slice(0, 100) + '%');
+    }
 
     if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
     query += ' ORDER BY l.tahun DESC, l.bulan DESC, l.created_at DESC LIMIT $' + (params.length + 1);
-    params.push(parseInt(limit));
+    params.push(limit);
 
     const result = await pool.query(query, params);
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching reports:', error);
+    console.error('Error fetching reports:', error.message);
     res.status(500).json({ success: false, message: 'Gagal memuat laporan' });
   }
 });
@@ -212,8 +286,17 @@ router.get('/reports', authenticateToken, requireRole('KEPALA_KANTOR'), async (r
 router.get('/reports/pending', authenticateToken, requireRole('KEPALA_KANTOR'), async (req, res) => {
   try {
     const { bulan, tahun } = req.query;
-    const b = bulan ? parseInt(bulan) : new Date().getMonth() + 1;
-    const t = tahun ? parseInt(tahun) : new Date().getFullYear();
+    const current = new Date();
+    const monthResult = parseMonthQuery(bulan, current.getMonth() + 1);
+    if (monthResult.error) {
+      return res.status(400).json({ success: false, message: monthResult.error });
+    }
+    const yearResult = parseYearQuery(tahun, current.getFullYear());
+    if (yearResult.error) {
+      return res.status(400).json({ success: false, message: yearResult.error });
+    }
+    const b = monthResult.value;
+    const t = yearResult.value;
 
     const result = await pool.query(`
       SELECT l.*, u.nama, u.nip, s.nama_seksi,
@@ -239,8 +322,17 @@ router.get('/reports/pending', authenticateToken, requireRole('KEPALA_KANTOR'), 
 router.get('/reports/approved', authenticateToken, requireRole('KEPALA_KANTOR'), async (req, res) => {
   try {
     const { bulan, tahun } = req.query;
-    const b = bulan ? parseInt(bulan) : new Date().getMonth() + 1;
-    const t = tahun ? parseInt(tahun) : new Date().getFullYear();
+    const current = new Date();
+    const monthResult = parseMonthQuery(bulan, current.getMonth() + 1);
+    if (monthResult.error) {
+      return res.status(400).json({ success: false, message: monthResult.error });
+    }
+    const yearResult = parseYearQuery(tahun, current.getFullYear());
+    if (yearResult.error) {
+      return res.status(400).json({ success: false, message: yearResult.error });
+    }
+    const b = monthResult.value;
+    const t = yearResult.value;
 
     const result = await pool.query(`
       SELECT l.*, u.nama as user_nama, u.nip, s.nama_seksi,
@@ -264,8 +356,17 @@ router.get('/reports/approved', authenticateToken, requireRole('KEPALA_KANTOR'),
 router.get('/reports/revision', authenticateToken, requireRole('KEPALA_KANTOR'), async (req, res) => {
   try {
     const { bulan, tahun } = req.query;
-    const b = bulan ? parseInt(bulan) : new Date().getMonth() + 1;
-    const t = tahun ? parseInt(tahun) : new Date().getFullYear();
+    const current = new Date();
+    const monthResult = parseMonthQuery(bulan, current.getMonth() + 1);
+    if (monthResult.error) {
+      return res.status(400).json({ success: false, message: monthResult.error });
+    }
+    const yearResult = parseYearQuery(tahun, current.getFullYear());
+    if (yearResult.error) {
+      return res.status(400).json({ success: false, message: yearResult.error });
+    }
+    const b = monthResult.value;
+    const t = yearResult.value;
 
     const result = await pool.query(`
       SELECT l.*, u.nama as user_nama, u.nip, s.nama_seksi,
@@ -287,54 +388,87 @@ router.get('/reports/revision', authenticateToken, requireRole('KEPALA_KANTOR'),
 
 // POST /api/kepala/reports/:id/approve - Approve a report
 router.post('/reports/:id/approve', authenticateToken, requireRole('KEPALA_KANTOR'), async (req, res) => {
+  const client = await pool.connect();
+
   try {
-    const { id } = req.params;
+    const id = parseId(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'ID laporan tidak valid' });
+    }
+
     const { status, catatan } = req.body;
+
     if (!['disetujui', 'revisi_kantor'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Status tidak valid' });
     }
 
-    const laporan = await pool.query('SELECT * FROM laporan WHERE id = $1', [id]);
-    if (laporan.rows.length === 0) {
+    const cleanedCatatan =
+      typeof catatan === 'string' && catatan.trim()
+        ? catatan.trim().slice(0, 500)
+        : null;
+
+    await client.query('BEGIN');
+
+    const lockRes = await client.query(
+      'SELECT * FROM laporan WHERE id = $1 FOR UPDATE',
+      [id]
+    );
+
+    const laporanRow = lockRes.rows[0];
+
+    if (!laporanRow) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ success: false, message: 'Laporan tidak ditemukan' });
     }
-    if (laporan.rows[0].status !== 'diteruskan') {
-      return res.status(400).json({ success: false, message: 'Hanya laporan yang sudah diverifikasi admin dapat disetujui' });
+
+    if (laporanRow.status !== 'diteruskan') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'Hanya laporan yang sudah diverifikasi admin dapat disetujui'
+      });
     }
 
     const newStatus = status === 'disetujui' ? 'disetujui' : 'revisi_kantor';
-    const updateResult = await pool.query(
+
+    const updateResult = await client.query(
       "UPDATE laporan SET status=$1, catatan_kantor=$2, tanggal_persetujuan=CURRENT_TIMESTAMP WHERE id=$3 RETURNING *",
-      [newStatus, catatan || null, id]
+      [newStatus, cleanedCatatan, id]
     );
 
-    await pool.query(
+    await client.query(
       "INSERT INTO persetujuan (id_laporan, id_kepala, status, catatan) VALUES ($1, $2, $3, $4)",
-      [id, req.user.id, status, catatan || null]
+      [id, req.user.id, status, cleanedCatatan]
     );
 
-    await pool.query(
+    await client.query(
       "INSERT INTO audit_trail (id_laporan, id_user, action, detail) VALUES ($1, $2, $3, $4)",
       [id, req.user.id, status === 'disetujui' ? 'approve' : 'request_revision',
-       status === 'disetujui' ? 'Laporan disetujui' : 'Laporan diminta revisi oleh Kepala Kantor']
+       status === 'disetujui' ? 'Laporan disetujui oleh Kepala Kantor' : 'Laporan diminta revisi oleh Kepala Kantor']
     );
 
-    const laporanUser = await pool.query('SELECT id, nama FROM users WHERE id = $1', [laporan.rows[0].id_user]);
+    await client.query('COMMIT');
+
+    const laporanUser = await pool.query('SELECT id, nama FROM users WHERE id = $1', [laporanRow.id_user]);
     if (laporanUser.rows[0]) {
       const notifType = status === 'disetujui' ? 'success' : 'warning';
       const notifMsg = status === 'disetujui'
-        ? `"${laporan.rows[0].judul}" telah disetujui oleh Kepala Kantor.`
-        : `"${laporan.rows[0].judul}" diminta revisi oleh Kepala Kantor.`;
+        ? `"${laporanRow.judul}" telah disetujui oleh Kepala Kantor.`
+        : `"${laporanRow.judul}" diminta revisi oleh Kepala Kantor.`;
       await pool.query(
         "INSERT INTO notifications (id_user, title, message, type) VALUES ($1, $2, $3, $4)",
         [laporanUser.rows[0].id, 'Status Laporan Diperbarui', notifMsg, notifType]
-      );
+      ).catch((err) => console.error('Failed to insert notification:', err.message));
     }
 
     res.json({ success: true, data: updateResult.rows[0] });
   } catch (error) {
-    console.error('Error approving report:', error);
+    try { await client.query('ROLLBACK'); } catch {}
+    console.error('Error approving report:', error.message);
     res.status(500).json({ success: false, message: 'Gagal memproses persetujuan' });
+  } finally {
+    client.release();
   }
 });
 
@@ -342,8 +476,17 @@ router.post('/reports/:id/approve', authenticateToken, requireRole('KEPALA_KANTO
 router.get('/sections', authenticateToken, requireRole('KEPALA_KANTOR'), async (req, res) => {
   try {
     const { bulan, tahun } = req.query;
-    const b = bulan ? parseInt(bulan) : new Date().getMonth() + 1;
-    const t = tahun ? parseInt(tahun) : new Date().getFullYear();
+    const current = new Date();
+    const monthResult = parseMonthQuery(bulan, current.getMonth() + 1);
+    if (monthResult.error) {
+      return res.status(400).json({ success: false, message: monthResult.error });
+    }
+    const yearResult = parseYearQuery(tahun, current.getFullYear());
+    if (yearResult.error) {
+      return res.status(400).json({ success: false, message: yearResult.error });
+    }
+    const b = monthResult.value;
+    const t = yearResult.value;
 
     const result = await pool.query(`
       SELECT s.id, s.nama_seksi,
@@ -371,10 +514,22 @@ router.get('/sections', authenticateToken, requireRole('KEPALA_KANTOR'), async (
 // GET /api/kepala/sections/:id - Section detail
 router.get('/sections/:id', authenticateToken, requireRole('KEPALA_KANTOR'), async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveId(req.params.id);
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'ID seksi tidak valid' });
+    }
     const { bulan, tahun } = req.query;
-    const b = bulan ? parseInt(bulan) : new Date().getMonth() + 1;
-    const t = tahun ? parseInt(tahun) : new Date().getFullYear();
+    const current = new Date();
+    const monthResult = parseMonthQuery(bulan, current.getMonth() + 1);
+    if (monthResult.error) {
+      return res.status(400).json({ success: false, message: monthResult.error });
+    }
+    const yearResult = parseYearQuery(tahun, current.getFullYear());
+    if (yearResult.error) {
+      return res.status(400).json({ success: false, message: yearResult.error });
+    }
+    const b = monthResult.value;
+    const t = yearResult.value;
 
     const sek = await pool.query('SELECT * FROM seksi WHERE id = $1', [id]);
     if (sek.rows.length === 0) {
@@ -416,9 +571,29 @@ router.get('/history', authenticateToken, requireRole('KEPALA_KANTOR'), async (r
     const params = [];
     const conditions = [];
 
-    if (bulan) { conditions.push('l.bulan = $' + (params.length + 1)); params.push(parseInt(bulan)); }
-    if (tahun) { conditions.push('l.tahun = $' + (params.length + 1)); params.push(parseInt(tahun)); }
-    if (status) { conditions.push('p.status = $' + (params.length + 1)); params.push(status); }
+    if (bulan) {
+      const b = parseMonthQuery(bulan, null);
+      if (b.error) {
+        return res.status(400).json({ success: false, message: b.error });
+      }
+      conditions.push('l.bulan = $' + (params.length + 1));
+      params.push(b.value);
+    }
+    if (tahun) {
+      const t = parseYearQuery(tahun, null);
+      if (t.error) {
+        return res.status(400).json({ success: false, message: t.error });
+      }
+      conditions.push('l.tahun = $' + (params.length + 1));
+      params.push(t.value);
+    }
+    if (status) {
+      if (!['disetujui', 'revisi_kantor'].includes(status)) {
+        return res.status(400).json({ success: false, message: 'Status tidak valid' });
+      }
+      conditions.push('p.status = $' + (params.length + 1));
+      params.push(status);
+    }
 
     if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
     query += ' ORDER BY p.created_at DESC';
@@ -434,7 +609,11 @@ router.get('/history', authenticateToken, requireRole('KEPALA_KANTOR'), async (r
 // GET /api/kepala/archive - Archive approved reports
 router.get('/archive', authenticateToken, requireRole('KEPALA_KANTOR'), async (req, res) => {
   try {
-    const { bulan, tahun, search, limit = 100 } = req.query;
+    const { bulan, tahun, search } = req.query;
+    let limit = parseInt(req.query.limit);
+    if (!Number.isInteger(limit) || limit < 1) limit = 100;
+    limit = Math.min(limit, 200);
+
     let query = `
       SELECT l.*, u.nama as user_nama, u.nip, s.nama_seksi,
              p.catatan as catatan_kantor, p.created_at as tanggal_persetujuan
@@ -446,12 +625,29 @@ router.get('/archive', authenticateToken, requireRole('KEPALA_KANTOR'), async (r
     `;
     const params = [];
 
-    if (bulan) { params.push(parseInt(bulan)); query += ' AND l.bulan = $' + params.length; }
-    if (tahun) { params.push(parseInt(tahun)); query += ' AND l.tahun = $' + params.length; }
-    if (search) { params.push('%' + search + '%'); query += ' AND (l.judul ILIKE $' + params.length + " OR u.nama ILIKE $" + params.length + ')'; }
+    if (bulan) {
+      const b = parseMonthQuery(bulan, null);
+      if (b.error) {
+        return res.status(400).json({ success: false, message: b.error });
+      }
+      params.push(b.value);
+      query += ' AND l.bulan = $' + params.length;
+    }
+    if (tahun) {
+      const t = parseYearQuery(tahun, null);
+      if (t.error) {
+        return res.status(400).json({ success: false, message: t.error });
+      }
+      params.push(t.value);
+      query += ' AND l.tahun = $' + params.length;
+    }
+    if (search && String(search).trim()) {
+      params.push('%' + String(search).trim().slice(0, 100) + '%');
+      query += ' AND (l.judul ILIKE $' + params.length + ' OR u.nama ILIKE $' + params.length + ')';
+    }
 
     query += ' ORDER BY p.created_at DESC LIMIT $' + (params.length + 1);
-    params.push(parseInt(limit));
+    params.push(limit);
 
     const result = await pool.query(query, params);
     res.json({ success: true, data: result.rows });

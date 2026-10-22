@@ -64,7 +64,7 @@
         href: item.href,
         'data-page': item.id
       });
-      a.appendChild(el('span', { className: 'nav-icon', textContent: item.icon }));
+      a.appendChild(navIcon(item.icon || 'doc'));
       a.appendChild(el('span', { className: 'nav-label', textContent: item.label }));
 
       if (item.badgeId) {
@@ -84,7 +84,8 @@
     footer.innerHTML = '';
     var logout = el('a', { className: 'nav-item logout-item', href: '#' });
     logout.addEventListener('click', function (e) { e.preventDefault(); handleLogout(); });
-    logout.appendChild(el('span', { className: 'nav-icon', textContent: '➜' }));
+    var logoutIcon = icon('logout'); logoutIcon.classList.add('nav-icon');
+    logout.appendChild(logoutIcon);
     logout.appendChild(el('span', { className: 'nav-label', textContent: 'Logout' }));
     footer.appendChild(logout);
 
@@ -99,13 +100,14 @@
 
     var user = (typeof AuthStore !== 'undefined' && AuthStore.getCurrentUser()) || null;
     var left = el('div', { className: 'topbar-left' });
-    left.appendChild(el('button', {
+    var menuBtn = el('button', {
       className: 'mobile-menu-btn',
       id: 'mobileMenuBtn',
       type: 'button',
-      'aria-label': 'Toggle menu',
-      textContent: '☰'
-    }));
+      'aria-label': 'Toggle menu'
+    });
+    menuBtn.appendChild(icon('menu'));
+    left.appendChild(menuBtn);
 
     var titleEl = el('div', { className: 'topbar-title-wrap' });
     titleEl.appendChild(el('span', { className: 'topbar-page-title', id: 'pageTitle', textContent: pageTitle || 'Dashboard' }));
@@ -121,7 +123,9 @@
     right.appendChild(period);
 
     var notifBtn = el('a', { className: 'notif-btn', id: 'notifBtn', href: '/admin-section/notifikasi.html', title: 'Notifikasi' });
-    notifBtn.innerHTML = '🔔<span class="notif-badge hidden" id="notifBadge">0</span>';
+    var bellIcon = icon('bell');
+    notifBtn.appendChild(bellIcon);
+    notifBtn.appendChild(el('span', { className: 'notif-badge hidden', id: 'notifBadge', textContent: '0' }));
     right.appendChild(notifBtn);
 
     var profileWrap = el('div', { className: 'profile-wrap' });

@@ -1,5 +1,35 @@
-const bcrypt = require('bcrypt');
-const pool = require('../db/database');
+// ─────────────────────────────────────────────────────────────
+// SECURITY: Script seed untuk environment development.
+// Password di bawah HANYA untuk development dan tidak boleh dipakai di production.
+// Di production, jalankan dengan flag --prod dan set semua env vars SEED_*_PASSWORD.
+// ─────────────────────────────────────────────────────────────
+const IS_PROD = process.argv.includes('--prod') || process.env.NODE_ENV === 'production';
+
+function seedPw(envVar, fallback) {
+  const val = process.env[envVar];
+  if (IS_PROD) {
+    if (!val) {
+      console.error(`FATAL: ${envVar} belum diset di mode production.`);
+      process.exit(1);
+    }
+    if (val.length < 12) {
+      console.error(`FATAL: ${envVar} terlalu pendek (< 12 char) di production.`);
+      process.exit(1);
+    }
+    return val;
+  }
+  if (!val) {
+    console.log(`⚠️  DEV ONLY: ${envVar} kosong → memakai "${fallback}". Ganti sebelum production.`);
+    return fallback;
+  }
+  return val;
+}
+
+const ADMIN_PW    = seedPw('SEED_ADMIN_PASSWORD',    'admin123');
+const KEPALA_PW   = seedPw('SEED_KEPALA_PASSWORD',   'kepala123');
+const ADMITU_PW   = seedPw('SEED_ADMIN_TU_PASSWORD', 'adminTU123');
+const ADMINLL_PW  = seedPw('SEED_ADMIN_LL_PASSWORD', 'adminLL123');
+const PEGAWAI_PW  = seedPw('SEED_PEGAWAI_PASSWORD',  'pegawai123');
 
 async function setupSeed() {
   try {
@@ -42,21 +72,21 @@ async function setupSeed() {
     }
 
     // Admin (SUPERADMIN)
-    const admin = await upsertUser('SUPERADMIN', 'admin123', 'Administrator', '1980010100000001', null, 'SUPERADMIN', true);
+    const admin = await upsertUser('SUPERADMIN', ADMIN_PW, 'Administrator', '1980010100000001', null, 'SUPERADMIN', true);
 
     // Kepala Kantor
-    const kepala = await upsertUser('KEPALA_KANTOR', 'kepala123', 'Kepala Kantor KSOP', '197501011999031002', null, 'KEPALA_KANTOR', true);
+    const kepala = await upsertUser('KEPALA_KANTOR', KEPALA_PW, 'Kepala Kantor KSOP', '197501011999031002', null, 'KEPALA_KANTOR', true);
 
     // Admin Seksi Tata Usaha
     const tuSeksi = seksiRows.rows.find(r => r.nama_seksi === 'Tata Usaha');
-    const adminTU = await upsertUser('ADMIN_SEKSI', 'adminTU123', 'Admin Tata Usaha', '198501011990012001', tuSeksi.id, 'ADMIN_SEKSI', true);
+    const adminTU = await upsertUser('ADMIN_SEKSI', ADMITU_PW, 'Admin Tata Usaha', '198501010000012001', tuSeksi.id, 'ADMIN_SEKSI', true);
 
     // Admin Seksi Lalu Lintas
     const llSeksi = seksiRows.rows.find(r => r.nama_seksi === 'Lalu Lintas dan Angkutan Laut');
-    const adminLL = await upsertUser('ADMIN_SEKSI', 'adminLL123', 'Admin Lalu Lintas', '198501011990012002', llSeksi.id, 'ADMIN_SEKSI', true);
+    const adminLL = await upsertUser('ADMIN_SEKSI', ADMINLL_PW, 'Admin Lalu Lintas', '198501010000022002', llSeksi.id, 'ADMIN_SEKSI', true);
 
     // Pegawai (regular user)
-    const pegawai = await upsertUser('PEGAWAI', 'pegawai123', 'Pegawai Tes', '199001012000011001', tuSeksi.id, 'PEGAWAI', true);
+    const pegawai = await upsertUser('PEGAWAI', PEGAWAI_PW, 'Pegawai Tes', '199001012000011001', tuSeksi.id, 'PEGAWAI', true);
 
     // Sample laporan
     const sampleReports = [
@@ -135,12 +165,19 @@ async function setupSeed() {
     );
 
     console.log('\nSeed data setup complete!');
-    console.log('\nLogin credentials:');
-    console.log('   Superadmin:       SUPERADMIN / admin123');
-    console.log('   Kepala Kantor:    KEPALA_KANTOR / kepala123');
-    console.log('   Admin Seksi TU:   ADMIN_SEKSI / adminTU123');
-    console.log('   Admin Seksi LL:   ADMIN_SEKSI / adminLL123');
-    console.log('   Pegawai:          PEGAWAI / pegawai123');
+    if (IS_PROD) {
+      console.log('\n⚠️  PRODUCTION: password di-set via environment variables.');
+      console.log('   Pastikan SEED_ADMIN_PASSWORD, SEED_KEPALA_PASSWORD, dst. sudah benar.');
+      console.log('   Jangan tampilkan password di log.');
+    } else {
+      console.log('\n[DEV ONLY] Login credentials (default dev — ganti di production):');
+      console.log('   Superadmin:       SUPERADMIN       (password via SEED_ADMIN_PASSWORD atau default)');
+      console.log('   Kepala Kantor:    KEPALA_KANTOR    (password via SEED_KEPALA_PASSWORD atau default)');
+      console.log('   Admin Seksi TU:   ADMIN_SEKSI      (password via SEED_ADMIN_TU_PASSWORD atau default)');
+      console.log('   Admin Seksi LL:   ADMIN_SEKSI      (password via SEED_ADMIN_LL_PASSWORD atau default)');
+      console.log('   Pegawai:          PEGAWAI          (password via SEED_PEGAWAI_PASSWORD atau default)');
+      console.log('   ⚠️  Semua default password HANYA untuk development. Ganti di production.');
+    }
 
     process.exit(0);
   } catch (error) {

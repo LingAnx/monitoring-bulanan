@@ -49,6 +49,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const params = new URLSearchParams(window.location.search);
   const editId = params.get('id');
+  if (editId && !/^\d+$/.test(editId)) {
+    // id laporan harus angka; tolak input berbahaya
+    showNotification('ID laporan tidak valid', 'error');
+    return;
+  }
 
   if (editId) {
     loadReport(parseInt(editId));
@@ -176,9 +181,9 @@ function formatFileSize(bytes) {
 
 function getFileIcon(name) {
   const ext = name.split('.').pop().toLowerCase();
-  if (ext === 'pdf') return '📄';
-  if (['jpg','jpeg','png','gif'].includes(ext)) return '🖼️';
-  return '📎';
+  if (ext === 'pdf') return '<span class="icon icon-doc"></span>';
+  if (['jpg','jpeg','png','gif'].includes(ext)) return '<span class="icon icon-image"></span>';
+  return '<span class="icon icon-paperclip"></span>';
 }
 
 async function loadLampiranPreview(laporanId) {
@@ -195,20 +200,68 @@ async function loadLampiranPreview(laporanId) {
 function renderLampiranList(files) {
   const container = document.getElementById('lampiranPreview');
   if (!container) return;
-  container.innerHTML = files.map((f, i) => `
+  container.innerHTML = files.map((f, i) => {
+    const name = f.originalName || f.filename || 'file';
+    const dlUrl = f.id ? `/api/files/${f.id}` : safeUrl(f.url ? API_BASE + f.url : '');
+    return `
     <div class="lampiran-item">
-      <span class="lampiran-icon">${getFileIcon(f.filename)}</span>
+      <span class="lampiran-icon">${getFileIcon(name)}</span>
       <div class="lampiran-info">
-        <div class="lampiran-name">${escapeHtml(f.filename)}</div>
+        <div class="lampiran-name">${escapeHtmlText(name)}</div>
         <div class="lampiran-size">${formatFileSize(f.size)}</div>
       </div>
-      <a href="${API_BASE}${f.url}" target="_blank" class="lampiran-download" title="Unduh">⬇</a>
+      ${dlUrl ? `<button class="lampiran-download" data-file-id="${f.id || ''}" data-legacy-url="${escapeHtmlAttr(f.url || '')}" title="Unduh">⬇</button>` : ''}
       <button class="lampiran-remove" onclick="removeLampiran(${i})" title="Hapus">&times;</button>
     </div>
-  `).join('');
+  `;}).join('');
+
+  // Download lampiran — token via header, bukan URL.
+  // FIX: dataset.fileId adalah string DOM (string dari f.id saat render).
+  // Konversi eksplisit ke Number; jika tidak valid, gunakan legacy URL dengan validasi.
+  const isLegacyUrlSafe = (u) =>
+    typeof u === 'string' && u.length > 0 && u.length <= 200 &&
+    u.startsWith('/') && !u.includes('..');
+  container.querySelectorAll('[data-file-id], [data-legacy-url]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      let target = null;
+      if (btn.dataset.fileId) {
+        const fid = Number(btn.dataset.fileId);
+        if (!Number.isInteger(fid) || fid <= 0) return; // tidak valid → abort
+        target = `/api/files/${fid}`;
+      } else if (btn.dataset.legacyUrl) {
+        const legacyUrl = btn.dataset.legacyUrl;
+        if (!isLegacyUrlSafe(legacyUrl)) return; // path traversal / skema buruk → abort
+        target = API_BASE + legacyUrl;
+      } else {
+        return; // tidak ada target valid
+      }
+      try {
+        const headers = { };
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+        const res = await fetch(target, { headers });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          showNotification(err.message || 'File tidak tersedia (' + res.status + ')', 'error');
+          return;
+        }
+        const blob = await res.blob();
+        const cd = res.headers.get('Content-Disposition') || '';
+        const m = cd.match(/filename="([^"]+)"/);
+        const fname = m ? decodeURIComponent(m[1]) : 'file';
+        const objUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objUrl; a.download = fname; a.click();
+        setTimeout(() => URL.revokeObjectURL(objUrl), 10000);
+      } catch (e) {
+        showNotification('Gagal mengunduh lampiran', 'error');
+      }
+    });
+  });
 }
 
 function escapeHtml(text) {
+  // Delegasikan ke util sentral (escapeHtmlText) agar konsisten
+  if (typeof escapeHtmlText === 'function') return escapeHtmlText(text);
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;

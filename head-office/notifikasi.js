@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   startPolling();
 });
 
-const ICON_MAP = { success: '✅', warning: '⚠️', info: 'ℹ️', danger: '❌' };
+const ICON_MAP = { success: '<span class="icon icon-check"></span>', warning: '<span class="icon icon-warning"></span>', info: '<span class="icon icon-info"></span>', danger: '<span class="icon icon-warning"></span>' };
 
 async function loadNotifications() {
   try {
@@ -49,7 +49,7 @@ async function loadNotifications() {
     if (notifications.length === 0) {
       container.innerHTML = `
         <div class="empty-notif">
-          <div class="empty-notif-icon">🔔</div>
+          <div class="empty-notif-icon"><span class="icon icon-bell"></span></div>
           <div class="empty-state-text">Belum ada notifikasi</div>
         </div>
       `;
@@ -64,7 +64,7 @@ async function loadNotifications() {
 
 function renderNotifItem(n) {
   const timeStr = formatRelativeTime(n.created_at);
-  const icon = ICON_MAP[n.type] || 'ℹ️';
+  const icon = ICON_MAP[n.type] || '<span class="icon icon-info"></span>';
   return `
     <li class="notif-item ${n.is_read ? '' : 'unread'}" onclick="markRead(${n.id})">
       <div class="notif-icon notif-icon-${n.type || 'info'}">${icon}</div>

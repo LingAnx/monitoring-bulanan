@@ -7,16 +7,16 @@
 
   try { window.EmployeeNav = {
     MENU: [
-      { id: 'beranda',         label: 'Dashboard',        href: '/employee/dashboard.html',        icon: '★' },
+      { id: 'beranda',         label: 'Dashboard',        href: '/employee/dashboard.html',        icon: 'star' },
       { group: 'LAPORAN' },
-      { id: 'laporan',         label: 'Laporan Saya',     href: '/employee/laporan.html',          icon: '📄' },
-      { id: 'buat',            label: 'Buat Laporan',     href: '/employee/form.html?action=create', icon: '+' },
-      { id: 'draft',           label: 'Draft',            href: '/employee/laporan.html?action=draft', icon: '📄', badgeId: 'draftBadge' },
-      { id: 'berjalan',        label: 'Laporan Berjalan', href: '/employee/laporan.html?action=berjalan', icon: '⏳', badgeId: 'berjalanBadge' },
-      { id: 'riwayat',         label: 'Riwayat Laporan',  href: '/employee/laporan.html?action=riwayat', icon: '📅' },
+      { id: 'laporan',         label: 'Laporan Saya',     href: '/employee/laporan.html',          icon: 'doc' },
+      { id: 'buat',            label: 'Buat Laporan',     href: '/employee/form.html?action=create', icon: 'plus' },
+      { id: 'draft',           label: 'Draft',            href: '/employee/laporan.html?action=draft', icon: 'doc', badgeId: 'draftBadge' },
+      { id: 'berjalan',        label: 'Laporan Berjalan', href: '/employee/laporan.html?action=berjalan', icon: 'hourglass', badgeId: 'berjalanBadge' },
+      { id: 'riwayat',         label: 'Riwayat Laporan',  href: '/employee/laporan.html?action=riwayat', icon: 'calendar' },
       { group: 'LAINNYA' },
-      { id: 'notif',           label: 'Notifikasi',       href: '/employee/notifikasi.html',       icon: '🔔', badgeId: 'sidebarNotifBadge' },
-      { id: 'profil',          label: 'Profil Saya',      href: '/employee/profil.html',           icon: '♡' }
+      { id: 'notif',           label: 'Notifikasi',       href: '/employee/notifikasi.html',       icon: 'bell', badgeId: 'sidebarNotifBadge' },
+      { id: 'profil',          label: 'Profil Saya',      href: '/employee/profil.html',           icon: 'user' }
     ],
 
     getMenu: function (activePage) {

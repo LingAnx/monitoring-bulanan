@@ -104,7 +104,7 @@ window.loadPendingApprovals = async function() {
       </div>
     `).join('');
   } catch {
-    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Gagal memuat data.</div></div>';
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><span class="icon icon-warning"></span></div><div class="empty-state-text">Gagal memuat data.</div></div>';
   }
 };
 
@@ -130,7 +130,7 @@ window.loadAllReports = async function() {
     const reports = result.data || [];
 
     if (reports.length === 0) {
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-text">Tidak ada laporan ditemukan.</div></div>';
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><span class="icon icon-doc"></span></div><div class="empty-state-text">Tidak ada laporan ditemukan.</div></div>';
       return;
     }
 
@@ -145,14 +145,14 @@ window.loadAllReports = async function() {
               <td>${escapeHtml(r.nama_seksi || '-')}</td>
               <td>${escapeHtml(r.judul.substring(0, 40))}${r.judul.length > 40 ? '...' : ''}</td>
               <td>${formatMonthYear(r.bulan, r.tahun)}</td>
-              <td><span class="badge badge-${r.status}">${statusLabel(r.status)}</span></td>
+              <td><span class="${statusBadgeClass(r.status)}">${escapeHtmlText(statusLabel(r.status))}</span></td>
               <td><button type="button" class="btn btn-sm btn-outline" onclick="viewReportDetail(${r.id})">Detail</button></td>
             </tr>
           `).join('')}
         </tbody>
       </table>`;
   } catch {
-    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Gagal memuat data.</div></div>';
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><span class="icon icon-warning"></span></div><div class="empty-state-text">Gagal memuat data.</div></div>';
   }
 };
 
@@ -172,7 +172,7 @@ window.loadHistory = async function() {
     const records = result.data || [];
 
     if (records.length === 0) {
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✓</div><div class="empty-state-text">Belum ada riwayat persetujuan.</div></div>';
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><span class="icon icon-check"></span></div><div class="empty-state-text">Belum ada riwayat persetujuan.</div></div>';
       return;
     }
 
@@ -186,7 +186,7 @@ window.loadHistory = async function() {
               <td>${escapeHtml(r.nama_seksi || '-')}</td>
               <td>${escapeHtml(r.judul.substring(0, 35))}${r.judul.length > 35 ? '...' : ''}</td>
               <td>${formatMonthYear(r.bulan, r.tahun)}</td>
-              <td><span class="badge badge-${r.status === 'disetujui' ? 'disetujui' : 'revisi_kantor'}">${r.status === 'disetujui' ? 'Disetujui' : 'Revisi'}</span></td>
+              <td><span class="${r.status === 'disetujui' ? statusBadgeClass('disetujui') : statusBadgeClass('revisi_kantor')}">${r.status === 'disetujui' ? 'Disetujui' : 'Revisi'}</span></td>
               <td>${escapeHtml(r.catatan || '-')}</td>
               <td>${formatDate(r.created_at)}</td>
             </tr>
@@ -194,7 +194,7 @@ window.loadHistory = async function() {
         </tbody>
       </table>`;
   } catch {
-    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Gagal memuat riwayat.</div></div>';
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><span class="icon icon-warning"></span></div><div class="empty-state-text">Gagal memuat riwayat.</div></div>';
   }
 };
 
@@ -218,7 +218,7 @@ window.loadArchive = async function() {
     const reports = result.data || [];
 
     if (reports.length === 0) {
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📁</div><div class="empty-state-text">Tidak ada arsip laporan.</div></div>';
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><span class="icon icon-archive"></span></div><div class="empty-state-text">Tidak ada arsip laporan.</div></div>';
       return;
     }
 
@@ -239,7 +239,7 @@ window.loadArchive = async function() {
         </tbody>
       </table>`;
   } catch {
-    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Gagal memuat arsip.</div></div>';
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><span class="icon icon-warning"></span></div><div class="empty-state-text">Gagal memuat arsip.</div></div>';
   }
 };
 
@@ -258,7 +258,7 @@ window.loadMonitoring = async function() {
     const sections = result.data || [];
 
     if (sections.length === 0) {
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">Belum ada data seksi.</div></div>';
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><span class="icon icon-users"></span></div><div class="empty-state-text">Belum ada data seksi.</div></div>';
       return;
     }
 
@@ -289,11 +289,11 @@ window.loadMonitoring = async function() {
             <div class="progress-bar" style="width:${secPct}%"></div>
           </div>
           <div style="display:flex;gap:16px;font-size:0.78rem;color:var(--gray-500)">
-            <span>✓ Disetujui: ${s.approved || 0}</span>
-            <span>⏳ Menunggu Persetujuan: ${s.pending_approval || 0}</span>
-            <span>📋 Menunggu Verifikasi: ${s.pending_verification || 0}</span>
-            <span>⚠️ Revisi: ${s.revision || 0}</span>
-            <span>✗ Belum: ${s.not_submitted || 0}</span>
+            <span><span class="icon icon-check"></span> Disetujui: ${s.approved || 0}</span>
+            <span><span class="icon icon-hourglass"></span> Menunggu Persetujuan: ${s.pending_approval || 0}</span>
+            <span><span class="icon icon-clipboard"></span> Menunggu Verifikasi: ${s.pending_verification || 0}</span>
+            <span><span class="icon icon-warning"></span> Revisi: ${s.revision || 0}</span>
+            <span><span class="icon icon-warning"></span> Belum: ${s.not_submitted || 0}</span>
           </div>
         </div>
       `;
@@ -301,7 +301,7 @@ window.loadMonitoring = async function() {
 
     container.innerHTML = html;
   } catch {
-    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Gagal memuat data monitoring.</div></div>';
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><span class="icon icon-warning"></span></div><div class="empty-state-text">Gagal memuat data monitoring.</div></div>';
   }
 };
 
@@ -322,7 +322,7 @@ window.viewReportDetail = async function(id) {
           <span class="lampiran-name">
             ${escapeHtml(f.filename)} (${formatFileSize(f.size)})
           </span>
-          <a href="${API_BASE}${f.url}" target="_blank" class="lampiran-link">
+          <a href="${API_BASE + safeUrl(f.url)}" target="_blank" rel="noopener" class="lampiran-link">
             Unduh
           </a>
         </li>
@@ -361,7 +361,7 @@ window.viewReportDetail = async function(id) {
     <div class="workflow-steps">
       ${steps.map(s => `
         <div class="wf-step ${s.done ? 'wf-done' : ''} ${s.current ? 'wf-current' : ''}">
-          <span class="wf-num">${s.done ? '✓' : s.num}</span>
+          <span class="wf-num">${s.done ? '<span class="icon icon-check"></span>' : s.num}</span>
           <span class="wf-label">${s.label}</span>
         </div>
       `).join('')}
@@ -369,10 +369,10 @@ window.viewReportDetail = async function(id) {
 
     <div class="detail-grid">
       <div class="detail-row"><span class="detail-label">Pegawai</span><span>${escapeHtml(r.user_nama)}</span></div>
-      <div class="detail-row"><span class="detail-label">NIP</span><span>${r.nip || '-'}</span></div>
+      <div class="detail-row"><span class="detail-label">NIP</span><span>${escapeHtmlText(r.nip || '-')}</span></div>
       <div class="detail-row"><span class="detail-label">Seksi</span><span>${escapeHtml(r.nama_seksi || '-')}</span></div>
       <div class="detail-row"><span class="detail-label">Periode</span><span>${formatMonthYear(r.bulan, r.tahun)}</span></div>
-      <div class="detail-row"><span class="detail-label">Status</span><span><span class="badge badge-${r.status}">${statusLabel(r.status)}</span></span></div>
+      <div class="detail-row"><span class="detail-label">Status</span><span><span class="${statusBadgeClass(r.status)}">${escapeHtmlText(statusLabel(r.status))}</span></span></div>
     </div>
 
     ${kegiatan.length > 0 ? `
@@ -380,7 +380,7 @@ window.viewReportDetail = async function(id) {
       <table class="data-table">
         <thead><tr><th>No</th><th>Tanggal</th><th>Kegiatan</th></tr></thead>
         <tbody>
-          ${kegiatan.map((k, i) => `<tr><td>${i + 1}</td><td>${k.tanggal}</td><td>${escapeHtml(k.kegiatan)}</td></tr>`).join('')}
+          ${kegiatan.map((k, i) => `<tr><td>${i + 1}</td><td>${escapeHtmlText(k.tanggal)}</td><td>${escapeHtmlText(k.kegiatan)}</td></tr>`).join('')}
         </tbody>
       </table>
     ` : ''}
@@ -517,9 +517,9 @@ function formatFileSize(bytes) {
 
 function getFileIcon(name) {
   const ext = name.split('.').pop().toLowerCase();
-  if (ext === 'pdf') return '📄';
-  if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return '🖼️';
-  return '📎';
+  if (ext === 'pdf') return '<span class="icon icon-doc"></span>';
+  if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return '<span class="icon icon-image"></span>';
+  return '<span class="icon icon-paperclip"></span>';
 }
 
 // ─── Close modals on overlay click ───────────────────────────────────────────

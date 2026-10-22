@@ -142,13 +142,13 @@ async function loadDashboardData() {
     } else {
       tbody.innerHTML = recent.map(r => `
         <tr>
-          <td><strong>${r.user_nama || '-'}</strong></td>
-          <td>${monthNames[r.bulan-1]} ${r.tahun}</td>
+          <td><strong>${escapeHtmlText(r.user_nama || '-')}</strong></td>
+          <td>${escapeHtmlText(monthNames[r.bulan-1])} ${r.tahun}</td>
           <td>${getStatusBadge(r.status)}</td>
           <td>${formatDate(r.created_at)}</td>
           <td>
             <button type="button" class="btn btn-sm btn-primary" onclick="viewDetail(${r.id})">👁️</button>
-            ${r.status === 'diajukan' ? `<button type="button" class="btn btn-sm btn-success" onclick="verifyReport(${r.id})">✓</button>` : ''}
+            ${r.status === 'diajukan' ? `<button type="button" class="btn btn-sm btn-success" onclick="verifyReport(${r.id})"><span class="icon icon-check"></span></button>` : ''}
           </td>
         </tr>
       `).join('');
@@ -165,8 +165,8 @@ async function loadDashboardData() {
         <div class="timeline-item">
           <div class="timeline-dot"></div>
           <div class="timeline-content">
-            <div class="timeline-title">${a.nama_pegawai || '-'}</div>
-            <div class="timeline-desc">${a.last_action || '-'}</div>
+            <div class="timeline-title">${escapeHtmlText(a.nama_pegawai || '-')}</div>
+            <div class="timeline-desc">${escapeHtmlText(a.last_action || '-')}</div>
             <div class="timeline-meta">${formatDate(a.created_at)}</div>
           </div>
         </div>
@@ -199,9 +199,9 @@ function renderNotifications(container, notifications) {
 
   container.innerHTML = notifications.map(n => `
     <div class="notif-item ${n.status === 'unread' ? 'unread' : ''}">
-      <div class="notif-icon">${n.status === 'unread' ? '🔔' : '🔕'}</div>
-      <div class="notif-text">${n.message}</div>
-      <div class="notif-time">${timeAgo(n.timestamp)}</div>
+      <div class="notif-icon">${n.status === 'unread' ? '<span class="icon icon-bell"></span>' : '<span class="icon icon-bell"></span>'}</div>
+      <div class="notif-text">${escapeHtmlText(n.message)}</div>
+      <div class="notif-time">${escapeHtmlText(timeAgo(n.timestamp))}</div>
     </div>
   `).join('');
 }
@@ -243,15 +243,8 @@ function showSkeleton(show) {
 }
 
 function getStatusBadge(status) {
-  const map = {
-    'draft': '<span class="status-badge status-draft">Draft</span>',
-    'diajukan': '<span class="status-badge status-diajukan">Diajukan</span>',
-    'diteruskan': '<span class="status-badge status-diteruskan">Diteruskan</span>',
-    'disetujui': '<span class="status-badge status-disetujui">Disetujui</span>',
-    'revisi_admin': '<span class="status-badge status-revisi">Revisi Admin</span>',
-    'revisi_kantor': '<span class="status-badge status-revisi">Revisi Kantor</span>'
-  };
-  return map[status] || `<span class="status-badge">${status}</span>`;
+  // Allowlist: map status DB → class CSS yang sudah ada di stylesheet
+  return `<span class="status-badge ${statusClass(status)}">${escapeHtmlText(statusLabel(status))}</span>`;
 }
 
 function formatDate(dateStr) {

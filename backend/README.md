@@ -2,6 +2,52 @@
 
 Backend aplikasi Sistem Digitalisasi Laporan Kinerja Bulanan KSOP Cirebon menggunakan Node.js, Express, PostgreSQL, JWT, dan bcrypt.
 
+## Instalasi Aman
+
+Ikuti urutan di bawah. **Jangan** memakai dump database aktual untuk setup.
+
+```bash
+# 1. Ekstrak source / package
+cd backend
+
+# 2. Salin .env.example ke .env (lokal, jangan commit)
+cp .env.example .env
+
+# 3. Isi secret melalui environment atau secret manager:
+#    - JWT_SECRET: generate nilai acak kuat (min 32 char)
+#    - DB_PASSWORD: password role DB khusus aplikasi
+#    Jangan hardcode nilai di file .env yang di-commit.
+#    Lihat: .env.example untuk daftar variabel.
+
+# 4. Instal dependensi dari lockfile
+npm install --omit=dev
+
+# 5. Jalankan schema + migration pada database kosong
+psql -U <db_user> -d <db_name> < db/schema.sql
+for f in db/migrations/*.sql; do psql -U <db_user> -d <db_name> < "$f"; done
+
+# 6. Buat akun administrator melalui script setup
+#    Mode production: set env vars SEED_*_PASSWORD sebelum menjalankan
+#    node scripts/setup-admin.js <username> <password_kuat> "Nama Lengkap"
+#    node scripts/setup-seed.js --prod   # hanya jika semua SEED_*_PASSWORD sudah diset
+
+# 7. Jalankan aplikasi
+NODE_ENV=production node server.js
+
+# 8. Verifikasi health check
+curl http://localhost:3000/health
+```
+
+## Keamanan — Ringkasan Kebijakan
+
+- `JWT_SECRET` wajib diset; aplikasi gagal start jika tidak ada atau < 32 char.
+- Tidak ada fallback secret. Rotasi `JWT_SECRET` membuat seluruh token lama tidak valid.
+- `DB_PASSWORD` hanya dari environment; placeholder ditolak di mode production.
+- Logout saat ini hanya hapus token di browser (tanpa revocation server-side).
+- Role DB production: pakai role khusus aplikasi dengan hak minimum, bukan superuser.
+
+Lihat `docs/db-credentials.md` untuk detail rotasi kredensial.
+
 ## Canonical Roles
 
 Aplikasi menggunakan empat role internal canonical:

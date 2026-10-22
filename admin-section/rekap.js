@@ -87,11 +87,11 @@ async function loadRekap() {
           ${reports.map((r, i) => `
             <tr>
               <td>${i + 1}</td>
-              <td>${r.judul}</td>
-              <td>${r.user_nama}</td>
-              <td>${r.nama_seksi || '-'}</td>
+              <td>${escapeHtmlText(r.judul)}</td>
+              <td>${escapeHtmlText(r.user_nama)}</td>
+              <td>${escapeHtmlText(r.nama_seksi || '-')}</td>
               <td>${formatMonthYear(r.bulan, r.tahun)}</td>
-              <td><span class="badge badge-${r.status}">${statusLabel(r.status)}</span></td>
+              <td><span class="badge ${statusBadgeClass(r.status)}">${escapeHtmlText(statusLabel(r.status))}</span></td>
               <td>${formatDate(r.tanggal_pengajuan)}</td>
             </tr>
           `).join('')}

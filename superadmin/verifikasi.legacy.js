@@ -106,7 +106,10 @@ window.showVerifyModal = async function(id) {
 
   const kegiatan = r.isi_kegiatan ? JSON.parse(r.isi_kegiatan) : [];
   const lampiran = r.lampiran && r.lampiran.length > 0
-    ? r.lampiran.map(f => `<li class="lampiran-row"><span class="lampiran-icon">${getFileIcon(f.filename)}</span><span class="lampiran-name">${escapeHtml(f.filename)} (${formatFileSize(f.size)})</span><a href="${API_BASE}${f.url}" target="_blank" class="lampiran-link">Unduh</a></li>`).join('')
+    ? r.lampiran.map(f => {
+        const name = f.originalName || f.filename || 'file';
+        return `<li class="lampiran-row"><span class="lampiran-icon">${getFileIcon(name)}</span><span class="lampiran-name">${escapeHtml(name)} (${formatFileSize(f.size)})</span><button class="lampiran-link" data-file-id="${f.id || ''}" data-legacy-url="${escapeHtml(f.url || '')}">Unduh</button></li>`;
+      }).join('')
     : '<li class="text-muted">Tidak ada lampiran</li>';
 
   document.getElementById('modalTitle').textContent = r.judul;
@@ -140,6 +143,35 @@ window.showVerifyModal = async function(id) {
       <textarea id="verifyCatatan" rows="3" placeholder="Tuliskan catatan atau instruksi perbaikan..."></textarea>
     </div>
   `;
+
+  // Bind tombol download lampiran (fetch + token)
+  document.querySelectorAll('#modalBody .lampiran-link[data-file-id], #modalBody .lampiran-link[data-legacy-url]').forEach(btn => {
+    btn.onclick = async () => {
+      const fid = btn.dataset.fileId;
+      const legacyUrl = btn.dataset.legacyUrl;
+      const token = window.authToken;
+      try {
+        const target = fid ? `/api/files/${fid}` : (API_BASE + legacyUrl);
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await fetch(target, { headers });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert(err.message || 'File tidak tersedia (' + res.status + ')');
+          return;
+        }
+        const blob = await res.blob();
+        const cd = res.headers.get('Content-Disposition') || '';
+        const m = cd.match(/filename="([^"]+)"/);
+        const fname = m ? decodeURIComponent(m[1]) : 'file';
+        const objUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objUrl; a.download = fname; a.click();
+        setTimeout(() => URL.revokeObjectURL(objUrl), 10000);
+      } catch (e) {
+        alert('Gagal mengunduh: ' + e.message);
+      }
+    };
+  });
 
   document.getElementById('modalFooter').innerHTML = `
     <button type="button" class="btn btn-danger" onclick="processVerify(${id}, 'revisi_admin')">Kembalikan untuk Revisi</button>

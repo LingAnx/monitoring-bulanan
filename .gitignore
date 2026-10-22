@@ -1,8 +1,44 @@
-node_modules/
+# ── Environment and secrets ────────────────────────────────
 .env
-.DS_Store
-.claude/settings.local.json
-backend/uploads/backups/
+.env.*
+!.env.example
 
-# Runtime logs
+# ── Dependencies ───────────────────────────────────────────
+node_modules/
+backend/node_modules/
+
+# ── Runtime files ──────────────────────────────────────────
+backend/uploads/
+backend/uploads/backups/
 backend/logs/
+backend/private/
+*.log
+
+# ── Database dumps and backups ─────────────────────────────
+*.dump
+*.backup
+*.bak
+*.sql.gz
+# Dump data nyata — spesifik, bukan global *.sql
+ksop_laporan_v1_stable.sql
+
+# ── OS metadata ────────────────────────────────────────────
+.DS_Store
+__MACOSX/
+
+# ── Temporary files ────────────────────────────���───────────
+*.tmp
+*.temp
+*.swp
+
+# ── Editor / IDE ───────────────────────────────────────────
+.claude/
+
+# ── Release artefakts (output build) ──────────────────────
+/release-staging-*/
+/release-*/
+
+# ── Frontend build artifact (hasil sync-frontend.sh) ─────
+# Source of truth: file HTML/CSS/JS di root project (index.html, employee/, dst.)
+# public/ dibuat ulang oleh scripts/sync-frontend.sh — jangan commit.
+/public/

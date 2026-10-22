@@ -12,70 +12,70 @@
         id: 'beranda',
         label: 'Dashboard',
         href: '/superadmin/dashboard.html',
-        icon: '★'
+        icon: 'star'
       },
-    
+
       {
         id: 'pengguna',
         label: 'Manajemen Pengguna',
         href: '/superadmin/pengguna.html',
-        icon: '👤'
+        icon: 'users'
       },
-    
+
       {
         id: 'seksi',
         label: 'Manajemen Seksi',
         href: '/superadmin/seksi.html',
-        icon: '🏢'
+        icon: 'building'
       },
-    
+
       {
         id: 'periode',
         label: 'Manajemen Periode',
         href: '/superadmin/periode.html',
-        icon: '📅'
+        icon: 'calendar'
       },
-    
+
       {
         id: 'semua-laporan',
         label: 'Semua Laporan',
         href: '/superadmin/laporan.html',
-        icon: '📄'
+        icon: 'doc'
       },
-    
+
       {
         id: 'monitoring',
         label: 'Monitoring',
         href: '/superadmin/monitoring.html',
-        icon: '📊'
+        icon: 'chart'
       },
-    
+
       {
         id: 'audit',
         label: 'Audit Trail',
         href: '/superadmin/audit.html',
-        icon: '📋'
+        icon: 'clipboard'
       },
-    
+
       {
         id: 'notifikasi',
         label: 'Notifikasi',
         href: '/superadmin/notifikasi.html',
-        icon: '🔔'
+        icon: 'bell'
       },
-    
+
       {
         id: 'backup',
         label: 'Data & Backup',
         href: '/superadmin/backup.html',
-        icon: '💾'
+        icon: 'save'
       },
-    
+
       {
         id: 'pengaturan',
         label: 'Pengaturan Sistem',
         href: '/superadmin/pengaturan.html',
-        icon: '⚙️'
+        icon: 'settings'
       }
     ],
 

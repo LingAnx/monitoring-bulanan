@@ -121,13 +121,13 @@ function renderLaporan(reports) {
           <tr>
             <td>${(currentPage - 1) * pageSize + i + 1}</td>
             <td>${formatDate(r.created_at)}</td>
-            <td>${getMonthName(r.bulan)} ${r.tahun}</td>
-            <td>${r.judul}</td>
+            <td>${escapeHtmlText(getMonthName(r.bulan))} ${r.tahun}</td>
+            <td>${escapeHtmlText(r.judul)}</td>
             <td>${getStatusLabel(r.status)}</td>
             <td>
-              <button type="button" class="btn btn-sm btn-primary" onclick="showDetail(${r.id})">👁️ Detail</button>
-              ${canEdit(r.status) ? `<button type="button" class="btn btn-sm btn-warning" onclick="editLaporan(${r.id})">✏️ Edit</button>` : ''}
-              ${r.status === 'draft' ? `<button type="button" class="btn btn-sm btn-danger" onclick="deleteLaporan(${r.id})">🗑️</button>` : ''}
+              <button type="button" class="btn btn-sm btn-primary" onclick="showDetail(${r.id})"><span class="icon icon-search"></span> Detail</button>
+              ${canEdit(r.status) ? `<button type="button" class="btn btn-sm btn-warning" onclick="editLaporan(${r.id})"><span class="icon icon-edit"></span> Edit</button>` : ''}
+              ${r.status === 'draft' ? `<button type="button" class="btn btn-sm btn-danger" onclick="deleteLaporan(${r.id})"><span class="icon icon-trash"></span></button>` : ''}
             </td>
           </tr>
         `).join('')}
@@ -171,15 +171,8 @@ function changePage(page) {
 }
 
 function getStatusLabel(status) {
-  const map = {
-    'draft': '<span class="status-badge status-draft">Draft</span>',
-    'diajukan': '<span class="status-badge status-diajukan">Diajukan</span>',
-    'diteruskan': '<span class="status-badge status-diteruskan">Diteruskan</span>',
-    'disetujui': '<span class="status-badge status-disetujui">Disetujui</span>',
-    'revisi_admin': '<span class="status-badge status-revisi">Revisi Admin</span>',
-    'revisi_kantor': '<span class="status-badge status-revisi">Revisi Kantor</span>'
-  };
-  return map[status] || status;
+  // Gunakan allowlist statusClass + statusLabel global; render teks aman
+  return `<span class="status-badge ${statusClass(status)}">${escapeHtmlText(statusLabel(status))}</span>`;
 }
 
 function getMonthName(month) {
@@ -257,12 +250,15 @@ function exportCSV(event) {
     formatDate(r.created_at),
     getMonthName(r.bulan),
     r.tahun,
-    `"${r.judul.replace(/"/g, '""')}"`,
-    `"${(r.isi || '').replace(/"/g, '""')}"`,
+    r.judul,
+    r.isi || '',
     r.status
   ]);
 
-  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const csv = [
+    headers.map(h => escapeCsvCell(h)).join(','),
+    ...rows.map(row => row.map(c => escapeCsvCell(c)).join(','))
+  ].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);

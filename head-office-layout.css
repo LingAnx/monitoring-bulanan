@@ -1,17 +1,17 @@
 /*
  * HeadOffice Shared Layout Styles
  * Common CSS for all KEPALA_KANTOR pages.
+ * Design tokens live in style.css :root (single source of truth).
+ * This file keeps only HeadOffice-specific layout overrides.
  */
 
-/* ── Layout Tokens ── */
+/* ── HeadOffice Specific Layout Tokens ──
+   Shared tokens (--space-*) are now global in style.css :root.
+   Only head-office-specific values below. */
 :root {
   --ho-sidebar-width: 260px;
   --ho-topbar-height: 64px;
   --page-bg: #f0f4f8;
-  --card-radius: 12px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
 }
 
 /* ── HeadOffice Container ── */

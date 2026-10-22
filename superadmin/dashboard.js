@@ -136,7 +136,7 @@ async function loadDashboard() {
     
         main.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-icon">⚠️</div>
+            <div class="empty-state-icon"><span class="icon icon-warning"></span></div>
             <div class="empty-state-text">Gagal memuat data dashboard.</div>
           </div>
         `;

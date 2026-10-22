@@ -35,8 +35,13 @@ if (initialStatus && statusFilter) {
 await loadNotifications();
 
 if (laporanId) {
-  await loadLaporanDetail(laporanId);
-  return;
+  // Validasi id: harus angka, hindari query path aneh ke API
+  if (!/^\d+$/.test(laporanId)) {
+    console.warn('URL param id tidak valid, diabaikan');
+  } else {
+    await loadLaporanDetail(laporanId);
+    return;
+  }
 }
 
 await loadLaporan();
@@ -150,14 +155,14 @@ function renderLaporan(reports) {
           <tr>
             <td>${(currentPage - 1) * pageSize + i + 1}</td>
             <td>${formatDate(r.created_at)}</td>
-            <td>${getMonthName(r.bulan)} ${r.tahun}</td>
-            <td>${r.judul}</td>
+            <td>${escapeHtmlText(getMonthName(r.bulan))} ${r.tahun}</td>
+            <td>${escapeHtmlText(r.judul)}</td>
             <td>${getStatusLabel(r.status)}</td>
             <td>
-              <button type="button" class="btn btn-sm btn-primary" onclick="showDetail(${r.id})">👁️ Detail</button>
+              <button type="button" class="btn btn-sm btn-primary" onclick="showDetail(${r.id})"><span class="icon icon-search"></span> Detail</button>
               ${canVerify(r.status) ? `
-                <button type="button" class="btn btn-sm btn-success" onclick="verifyLaporan(${r.id}, 'approve')">✓ Verifikasi</button>
-                <button type="button" class="btn btn-sm btn-danger" onclick="verifyLaporan(${r.id}, 'revisi')">✏️ Revisi</button>
+                <button type="button" class="btn btn-sm btn-success" onclick="verifyLaporan(${r.id}, 'approve')"><span class="icon icon-check"></span> Verifikasi</button>
+                <button type="button" class="btn btn-sm btn-danger" onclick="verifyLaporan(${r.id}, 'revisi')"><span class="icon icon-edit"></span> Revisi</button>
               ` : ''}
             </td>
           </tr>
@@ -202,15 +207,8 @@ function changePage(page) {
 }
 
 function getStatusLabel(status) {
-  const map = {
-    'draft': '<span class="status-badge status-draft">Draft</span>',
-    'diajukan': '<span class="status-badge status-diajukan">Diajukan</span>',
-    'diteruskan': '<span class="status-badge status-diteruskan">Diteruskan</span>',
-    'disetujui': '<span class="status-badge status-disetujui">Disetujui</span>',
-    'revisi_admin': '<span class="status-badge status-revisi">Revisi Admin</span>',
-    'revisi_kantor': '<span class="status-badge status-revisi">Revisi Kantor</span>'
-  };
-  return map[status] || status;
+  // Allowlist status → class CSS yang sudah ada di stylesheet
+  return `<span class="status-badge ${statusClass(status)}">${escapeHtmlText(statusLabel(status))}</span>`;
 }
 
 function getMonthName(month) {
@@ -284,7 +282,7 @@ async function loadLaporanDetail(id) {
 
           <div class="detail-item">
             <strong>Bulan / Tahun</strong>
-            <p>${getMonthName(laporan.bulan)} ${laporan.tahun}</p>
+            <p>${escapeHtmlText(getMonthName(laporan.bulan))} ${laporan.tahun}</p>
           </div>
 
           <div class="detail-item">
@@ -337,6 +335,8 @@ async function loadLaporanDetail(id) {
 }
 
 function escapeHtmlDetail(value) {
+  // Delegasikan ke util sentral
+  if (typeof escapeHtmlText === 'function') return escapeHtmlText(value);
   const div = document.createElement('div');
   div.textContent = String(value ?? '');
   return div.innerHTML;
@@ -370,12 +370,15 @@ function exportCSV(event) {
     formatDate(r.created_at),
     getMonthName(r.bulan),
     r.tahun,
-    `"${r.judul.replace(/"/g, '""')}"`,
-    `"${(r.isi || '').replace(/"/g, '""')}"`,
+    r.judul,
+    r.isi || '',
     r.status
   ]);
 
-  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const csv = [
+    headers.map(h => escapeCsvCell(h)).join(','),
+    ...rows.map(row => row.map(c => escapeCsvCell(c)).join(','))
+  ].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
