@@ -89,8 +89,8 @@ async function renderDashboard() {
       <div class="error-page">
         <div class="error-icon">&#9888;</div>
         <div class="error-text">Gagal memuat dashboard.</div>
-        <small>${err.message || 'Coba lagi nanti.'}</small>
-        <button class="btn btn-primary" onclick="location.reload()" style="margin-top:16px">Coba Lagi</button>
+        <small>${escapeHtmlText(err.message || 'Coba lagi nanti.')}</small>
+        <button class="btn btn-primary" data-reload="true" style="margin-top:16px">Coba Lagi</button>
       </div>
     `;
   }
@@ -108,14 +108,14 @@ function buildDashboardHTML(activeReport, revisionNote, recentReports, activitie
     <!-- Hero Section -->
     <section class="hero-section">
       <div class="hero-content">
-        <h1 class="hero-title">Selamat Datang, ${currentUser.nama.split(' ')[0]}! &#128075;</h1>
+        <h1 class="hero-title">Selamat Datang, ${escapeHtmlText(currentUser ? currentUser.nama.split(' ')[0] : '')}! &#128075;</h1>
         <p class="hero-subtitle">Kelola dan pantau laporan bulanan Anda dengan mudah dan terstruktur.</p>
       </div>
       <div class="hero-actions">
         ${activeReport ? `
-          <button class="btn btn-primary" onclick="window.location.href='/employee/laporan.html'">Lihat Status Laporan</button>
+          <button class="btn btn-primary" data-navigate="/employee/laporan.html">Lihat Status Laporan</button>
         ` : `
-          <button class="btn btn-primary" onclick="window.location.href='/employee/form.html'">Buat Laporan Baru</button>
+          <button class="btn btn-primary" data-navigate="/employee/form.html">Buat Laporan Baru</button>
         `}
       </div>
       <div class="hero-decoration">
@@ -127,7 +127,7 @@ function buildDashboardHTML(activeReport, revisionNote, recentReports, activitie
 
     <!-- Stats Cards -->
     <section class="stats-grid-modern">
-      <div class="stat-card-modern stat-blue" onclick="window.location.href='/employee/laporan.html'">
+      <div class="stat-card-modern stat-blue" data-navigate="/employee/laporan.html">
         <div class="stat-icon"><span>&#128196;</span></div>
         <div class="stat-info">
           <div class="stat-value">${activeReport ? 1 : 0}</div>
@@ -137,7 +137,7 @@ function buildDashboardHTML(activeReport, revisionNote, recentReports, activitie
         <div class="stat-arrow">&#10132;</div>
       </div>
 
-      <div class="stat-card-modern stat-yellow" onclick="window.location.href='/employee/laporan.html'">
+      <div class="stat-card-modern stat-yellow" data-navigate="/employee/laporan.html">
         <div class="stat-icon"><span>&#9203;</span></div>
         <div class="stat-info">
           <div class="stat-value">${pendingCount}</div>
@@ -147,7 +147,7 @@ function buildDashboardHTML(activeReport, revisionNote, recentReports, activitie
         <div class="stat-arrow">&#10132;</div>
       </div>
 
-      <div class="stat-card-modern stat-red" onclick="window.location.href='/employee/laporan.html'">
+      <div class="stat-card-modern stat-red" data-navigate="/employee/laporan.html">
         <div class="stat-icon"><span>&#9888;</span></div>
         <div class="stat-info">
           <div class="stat-value">${reviseCount}</div>
@@ -157,7 +157,7 @@ function buildDashboardHTML(activeReport, revisionNote, recentReports, activitie
         <div class="stat-arrow">&#10132;</div>
       </div>
 
-      <div class="stat-card-modern stat-green" onclick="window.location.href='/employee/laporan.html'">
+      <div class="stat-card-modern stat-green" data-navigate="/employee/laporan.html">
         <div class="stat-icon"><span>&#10003;</span></div>
         <div class="stat-info">
           <div class="stat-value">${approvedCount}</div>
@@ -218,11 +218,11 @@ function buildDashboardHTML(activeReport, revisionNote, recentReports, activitie
                       <td>${formatMonthYear(r.bulan, r.tahun)}</td>
                       <td>${formatDate(r.created_at)}</td>
                       <td>${r.tanggal_pengajuan ? formatDate(r.tanggal_pengajuan) : '-'}</td>
-                      <td><span class="status-badge-simple status-${r.status}">${statusLabel(r.status)}</span></td>
+                      <td><span class="status-badge-simple ${statusClass(r.status)}">${escapeHtmlText(statusLabel(r.status))}</span></td>
                       <td>${formatDate(r.updated_at)}</td>
                       <td>
-                        <button class="btn btn-text btn-sm" onclick="showReportDetail(${r.id})">Lihat</button>
-                        ${r.status === 'disetujui' ? `<button class="btn btn-text btn-sm" onclick="downloadReport(${r.id})">Download</button>` : ''}
+                        <button class="btn btn-text btn-sm" data-click-action="showReportDetail" data-action-arg="${r.id}">Lihat</button>
+                        ${r.status === 'disetujui' ? `<button class="btn btn-text btn-sm" data-click-action="downloadReport" data-action-arg="${r.id}">Download</button>` : ''}
                       </td>
                     </tr>
                   `).join('')}
@@ -261,7 +261,7 @@ function buildDashboardHTML(activeReport, revisionNote, recentReports, activitie
               <span class="deadline-used">${Math.round(deadlineInfo.progress)}% terpakai</span>
             </div>
           </div>
-          <button class="btn btn-primary full-width" onclick="window.location.href='/employee/laporan.html'">Lihat Status Laporan</button>
+          <button class="btn btn-primary full-width" data-navigate="/employee/laporan.html">Lihat Status Laporan</button>
         </div>
 
         <!-- Notifications -->
@@ -284,10 +284,10 @@ function buildDashboardHTML(activeReport, revisionNote, recentReports, activitie
           <div class="activity-timeline">
             ${activities.length > 0 ? activities.slice(0, 5).map(a => `
               <div class="activity-item">
-                <div class="activity-dot ${a.type}"></div>
+                <div class="activity-dot ${statusBadgeClass(a.type)}"></div>
                 <div class="activity-content">
-                  <div class="activity-text">${a.text}</div>
-                  <div class="activity-time">${a.time}</div>
+                  <div class="activity-text">${escapeHtmlText(a.text)}</div>
+                  <div class="activity-time">${escapeHtmlText(a.time)}</div>
                 </div>
               </div>
             `).join('') : `
@@ -367,8 +367,8 @@ function buildWorkflowTimeline(report) {
         `;
       }).join('')}
     </div>
-    ${revisionNote ? `<div class="wf-revision-note">Revisi: ${revisionNote}</div>` : ''}
-    <div style="text-align:right;margin-top:12px"><button class="btn btn-outline btn-sm" onclick="showReportDetail(${report.id})">Lihat Detail</button></div>
+    ${revisionNote ? `<div class="wf-revision-note">Revisi: ${escapeHtmlText(revisionNote)}</div>` : ''}
+    <div style="text-align:right;margin-top:12px"><button class="btn btn-outline btn-sm" data-click-action="showReportDetail" data-action-arg="${report.id}">Lihat Detail</button></div>
   `;
 }
 
@@ -392,8 +392,8 @@ function buildQuickActions(report) {
     `;
   }
   return `
-    <button class="qa-item" onclick="showReportDetail(${report.id})"><div class="qa-icon blue">&#128065;</div><span>Lihat Laporan</span></button>
-    ${report.status === 'disetujui' ? `<button class="qa-item" onclick="downloadReport(${report.id})"><div class="qa-icon green">&#8681;</div><span>Download PDF</span></button>` : ''}
+    <button class="qa-item" data-click-action="showReportDetail" data-action-arg="${report.id}"><div class="qa-icon blue">&#128065;</div><span>Lihat Laporan</span></button>
+    ${report.status === 'disetujui' ? `<button class="qa-item" data-click-action="downloadReport" data-action-arg="${report.id}"><div class="qa-icon green">&#8681;</div><span>Download PDF</span></button>` : ''}
     <a href="/employee/laporan.html" class="qa-item"><div class="qa-icon gray">&#128197;</div><span>Riwayat Laporan</span></a>
   `;
 }
@@ -413,7 +413,7 @@ function buildCompletionCard(progress) {
           ${fields.map(f => '<div class="field-check-row ' + (f.checked ? 'checked' : 'empty') + '"><span class="fc-dot">' + (f.checked ? '&#10003;' : '&#10071;') + '</span><span class="fc-label">' + f.label + '</span>' + (f.checked ? '<span class="fc-check-icon">&#10003;</span>' : '') + '</div>').join('')}
         </div>
       </div>
-      <div style="text-align:center;margin-top:12px"><button class="btn btn-outline btn-sm" onclick="window.location.href='/employee/form.html'">Lengkapi Laporan</button></div>
+      <div style="text-align:center;margin-top:12px"><button class="btn btn-outline btn-sm" data-navigate="/employee/form.html">Lengkapi Laporan</button></div>
     </div>
   `;
 }
@@ -430,9 +430,9 @@ function buildNotificationsList(notifications) {
       <a href="/employee/notifikasi.html" class="notif-item">
         <div class="notif-dot">${icon}</div>
         <div class="notif-content">
-          <div class="notif-title">${n.title}</div>
-          <div class="notif-message">${n.message}</div>
-          <div class="notif-time">${formatRelativeTime(n.created_at)}</div>
+          <div class="notif-title">${escapeHtmlText(n.title)}</div>
+          <div class="notif-message">${escapeHtmlText(n.message)}</div>
+          <div class="notif-time">${escapeHtmlText(formatRelativeTime(n.created_at))}</div>
         </div>
         <div class="notif-indicator ${dotClass}"></div>
       </a>
@@ -446,10 +446,10 @@ function buildRevisionAlert(note) {
       <div class="revision-alert-icon">&#9888;</div>
       <div class="revision-alert-content">
         <div class="revision-alert-title">Laporan Perlu Revisi</div>
-        <div class="revision-alert-text">${note.note}</div>
-        <div class="revision-alert-meta"><span>Dari: ${note.by}</span><span>&#8226;</span><span>${note.date}</span></div>
+        <div class="revision-alert-text">${escapeHtmlText(note.note)}</div>
+        <div class="revision-alert-meta"><span>Dari: ${escapeHtmlText(note.by)}</span><span>&#8226;</span><span>${escapeHtmlText(note.date)}</span></div>
       </div>
-      <button class="btn btn-sm btn-danger" onclick="window.location.href='/employee/form.html'">Perbaiki Sekarang</button>
+      <button class="btn btn-sm btn-danger" data-navigate="/employee/form.html">Perbaiki Sekarang</button>
     </div>
   `;
 }
@@ -489,19 +489,20 @@ function generateActivities(reports, notifications) {
   const activities = [];
   const iconMap = { draft: 'create', submit: 'submit', verify: 'verify', approve: 'approve', revision: 'revision', create: 'create' };
   for (const r of reports) {
-    activities.push({ type: 'create', text: `Anda membuat laporan <strong>"${truncate(r.judul, 30)}"</strong> (${formatMonthYear(r.bulan, r.tahun)})`, time: formatRelativeTime(r.created_at) });
-    if (r.tanggal_pengajuan) activities.push({ type: 'submit', text: `Anda mengirim laporan <strong>"${truncate(r.judul, 30)}"</strong> untuk diverifikasi`, time: formatRelativeTime(r.tanggal_pengajuan) });
+    const judul = escapeHtmlText(truncate(r.judul, 30));
+    activities.push({ type: 'create', text: `Anda membuat laporan <strong>"${judul}"</strong> (${formatMonthYear(r.bulan, r.tahun)})`, time: formatRelativeTime(r.created_at) });
+    if (r.tanggal_pengajuan) activities.push({ type: 'submit', text: `Anda mengirim laporan <strong>"${judul}"</strong> untuk diverifikasi`, time: formatRelativeTime(r.tanggal_pengajuan) });
     if (r.tanggal_verifikasi) {
       const verb = (r.status === 'revisi_admin') ? 'diminta revisi oleh Admin Seksi' : 'diverifikasi oleh Admin Seksi';
-      activities.push({ type: 'revision', text: `Laporan <strong>"${truncate(r.judul, 30)}"</strong> ${verb}`, time: formatRelativeTime(r.tanggal_verifikasi) });
+      activities.push({ type: 'revision', text: `Laporan <strong>"${judul}"</strong> ${verb}`, time: formatRelativeTime(r.tanggal_verifikasi) });
     }
     if (r.tanggal_persetujuan) {
       const verb = (r.status === 'revisi_kantor') ? 'diminta revisi oleh Kepala Kantor' : 'disetujui oleh Kepala Kantor';
-      activities.push({ type: 'approve', text: `Laporan <strong>"${truncate(r.judul, 30)}"</strong> ${verb}`, time: formatRelativeTime(r.tanggal_persetujuan) });
+      activities.push({ type: 'approve', text: `Laporan <strong>"${judul}"</strong> ${verb}`, time: formatRelativeTime(r.tanggal_persetujuan) });
     }
   }
   for (const n of notifications.filter(n => !n.is_read).slice(0, 3)) {
-    activities.push({ type: 'verify', text: n.message, time: formatRelativeTime(n.created_at) });
+    activities.push({ type: 'verify', text: escapeHtmlText(n.message), time: formatRelativeTime(n.created_at) });
   }
   return activities.sort((a, b) => new Date(b.time) - new Date(a.time));
 }
@@ -542,22 +543,23 @@ window.showReportDetail = async function(id) {
     document.getElementById('modalTitle').textContent = r.judul;
     const kegiatan = r.isi_kegiatan ? JSON.parse(r.isi_kegiatan) : [];
     const lampiran = r.lampiran ? JSON.parse(r.lampiran) : [];
+    const statusCls = statusClass(r.status);
     document.getElementById('modalBody').innerHTML = `
       <div class="detail-grid">
-        <div class="detail-row"><span class="detail-label">Pegawai</span><span>${r.user_nama}</span></div>
-        <div class="detail-row"><span class="detail-label">NIP</span><span>${r.nip || '-'}</span></div>
-        <div class="detail-row"><span class="detail-label">Seksi</span><span>${r.nama_seksi || '-'}</span></div>
+        <div class="detail-row"><span class="detail-label">Pegawai</span><span>${escapeHtmlText(r.user_nama)}</span></div>
+        <div class="detail-row"><span class="detail-label">NIP</span><span>${escapeHtmlText(r.nip || '-')}</span></div>
+        <div class="detail-row"><span class="detail-label">Seksi</span><span>${escapeHtmlText(r.nama_seksi || '-')}</span></div>
         <div class="detail-row"><span class="detail-label">Periode</span><span>${formatMonthYear(r.bulan, r.tahun)}</span></div>
-        <div class="detail-row"><span class="detail-label">Status</span><span><span class="badge badge-${r.status}">${statusLabel(r.status)}</span></span></div>
+        <div class="detail-row"><span class="detail-label">Status</span><span><span class="${statusBadgeClass(r.status)}">${escapeHtmlText(statusLabel(r.status))}</span></span></div>
         <div class="detail-row"><span class="detail-label">Diajukan</span><span>${r.tanggal_pengajuan ? formatDate(r.tanggal_pengajuan) : '-'}</span></div>
       </div>
-      ${kegiatan.length > 0 ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Kegiatan</h4><table class="data-table" style="margin-bottom:16px"><thead><tr><th>No</th><th>Tanggal</th><th>Kegiatan</th><th>Keterangan</th></tr></thead><tbody>${kegiatan.map((k,i) => `<tr><td>${i+1}</td><td>${k.tanggal}</td><td>${k.kegiatan}</td><td>${k.keterangan||''}</td></tr>`).join('')}</tbody></table>` : ''}
-      ${r.capaian ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Capaian</h4><p>${r.capaian}</p>` : ''}
-      ${r.kendala ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Kendala</h4><p>${r.kendala}</p>` : ''}
-      ${r.tindak_lanjut ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Tindak Lanjut</h4><p>${r.tindak_lanjut}</p>` : ''}
-      ${r.catatan_admin ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Catatan Admin Seksi</h4><p>${r.catatan_admin}</p>` : ''}
-      ${r.catatan_kantor ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Catatan Kepala Kantor</h4><p>${r.catatan_kantor}</p>` : ''}
-      ${lampiran.length > 0 ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Lampiran (${lampiran.length} file)</h4><ul style="padding-left:20px;font-size:0.85rem;color:var(--gray-600)">${lampiran.map(f => `<li>${f.nama}</li>`).join('')}</ul>` : ''}
+      ${kegiatan.length > 0 ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Kegiatan</h4><table class="data-table" style="margin-bottom:16px"><thead><tr><th>No</th><th>Tanggal</th><th>Kegiatan</th><th>Keterangan</th></tr></thead><tbody>${kegiatan.map((k,i) => `<tr><td>${i+1}</td><td>${escapeHtmlText(k.tanggal)}</td><td>${escapeHtmlText(k.kegiatan)}</td><td>${escapeHtmlText(k.keterangan||'')}</td></tr>`).join('')}</tbody></table>` : ''}
+      ${r.capaian ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Capaian</h4><p>${escapeHtmlText(r.capaian)}</p>` : ''}
+      ${r.kendala ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Kendala</h4><p>${escapeHtmlText(r.kendala)}</p>` : ''}
+      ${r.tindak_lanjut ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Tindak Lanjut</h4><p>${escapeHtmlText(r.tindak_lanjut)}</p>` : ''}
+      ${r.catatan_admin ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Catatan Admin Seksi</h4><p>${escapeHtmlText(r.catatan_admin)}</p>` : ''}
+      ${r.catatan_kantor ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Catatan Kepala Kantor</h4><p>${escapeHtmlText(r.catatan_kantor)}</p>` : ''}
+      ${lampiran.length > 0 ? `<h4 style="margin:16px 0 8px;font-size:0.9rem">Lampiran (${lampiran.length} file)</h4><ul style="padding-left:20px;font-size:0.85rem;color:var(--gray-600)">${lampiran.map(f => `<li>${escapeHtmlText(f.nama)}</li>`).join('')}</ul>` : ''}
     `;
     document.getElementById('detailModal').classList.add('active');
   } catch (err) { showNotification('Gagal memuat detail laporan', 'error'); }
@@ -585,7 +587,7 @@ window.downloadReport = async function(id) {
     content += `\n${'='.repeat(40)}\nDicetak pada: ${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}`;
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `Laporan_${r.user_nama}_${r.bulan}_${r.tahun}.txt`; a.click();
+    const a = document.createElement('a'); a.href = url; a.download = `Laporan_${(r.user_nama || '').replace(/[\\\/:*?"<>|]/g, '_')}_${r.bulan}_${r.tahun}.txt`; a.click();
     URL.revokeObjectURL(url);
   } catch { showNotification('Gagal mengunduh laporan', 'error'); }
 };

@@ -26,24 +26,49 @@ async function loadPeriode() {
         <thead><tr><th>Periode</th><th>Tanggal Mulai</th><th>Deadline</th><th>Status</th><th>Aksi</th></tr></thead>
         <tbody>
           ${periods.map(p => `
-            <tr>
-              <td>${MONTHS[p.bulan]} ${p.tahun}</td>
+            <tr data-periode-id="${p.id}" data-periode-bulan="${p.bulan}" data-periode-tahun="${p.tahun}"
+                data-periode-mulai="${p.tanggal_mulai}" data-periode-deadline="${p.deadline}"
+                data-periode-status="${p.status}">
+              <td>${escapeHtmlText(MONTHS[p.bulan])} ${p.tahun}</td>
               <td>${formatDate(p.tanggal_mulai)}</td>
               <td>${formatDate(p.deadline)}</td>
               <td><span class="badge ${p.status === 'aktif' ? 'approved' : 'revision'}">${p.status === 'aktif' ? 'Aktif' : 'Ditutup'}</span></td>
               <td>
-                <button class="btn btn-sm btn-outline" onclick="editPeriode(${p.id},'${p.bulan}','${p.tahun}','${p.tanggal_mulai}','${p.deadline}','${p.status}')">Edit</button>
+                <button class="btn btn-sm btn-outline act-per-edit">Edit</button>
                 ${p.status === 'aktif'
-                  ? `<button class="btn btn-sm btn-danger" onclick="togglePeriode(${p.id},'close')">Tutup</button>`
-                  : `<button class="btn btn-sm btn-success" onclick="togglePeriode(${p.id},'open')">Buka</button>`
+                  ? `<button class="btn btn-sm btn-danger act-per-close">Tutup</button>`
+                  : `<button class="btn btn-sm btn-success act-per-open">Buka</button>`
                 }
-                <button class="btn btn-sm btn-danger" onclick="deletePeriode(${p.id},'${MONTHS[p.bulan]} ${p.tahun}')">Hapus</button>
+                <button class="btn btn-sm btn-danger act-per-del">Hapus</button>
               </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     `;
+
+    // Event delegation for periode actions
+    // FIX: dataset.dataset adalah string DOM — konversi eksplisit ke Number untuk
+    // periode ID, bulan, dan tahun; validasi sebelum menjalankan aksi.
+    container.querySelectorAll('[data-periode-id]').forEach(el => {
+      const pid = Number(el.dataset.periodeId);
+      if (!Number.isInteger(pid) || pid <= 0) return;
+      const bulan = Number(el.dataset.periodeBulan);
+      const tahun = Number(el.dataset.periodeTahun);
+      if (!Number.isInteger(bulan) || bulan < 1 || bulan > 12) return;
+      if (!Number.isInteger(tahun) || tahun < 2000 || tahun > 2999) return;
+      const mulai = el.dataset.periodeMulai;
+      const deadline = el.dataset.periodeDeadline;
+      const status = el.dataset.periodeStatus;
+      const editBtn = el.querySelector('.act-per-edit');
+      const closeBtn = el.querySelector('.act-per-close');
+      const openBtn = el.querySelector('.act-per-open');
+      const delBtn = el.querySelector('.act-per-del');
+      if (editBtn) editBtn.addEventListener('click', () => editPeriode(pid, bulan, tahun, mulai, deadline, status));
+      if (closeBtn) closeBtn.addEventListener('click', () => togglePeriode(pid, 'close'));
+      if (openBtn) openBtn.addEventListener('click', () => togglePeriode(pid, 'open'));
+      if (delBtn) delBtn.addEventListener('click', () => deletePeriode(pid, `${MONTHS[bulan]} ${tahun}`));
+    });
   } catch (err) {
     container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><div class="empty-state-text">Gagal memuat data.</div></div>';
   }

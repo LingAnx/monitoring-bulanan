@@ -28,12 +28,20 @@ if (IS_PRODUCTION && DB_PASSWORD === '') {
   process.exit(1);
 }
 
+const PGSSLMODE = (process.env.PGSSLMODE || '').toLowerCase();
+const DB_SSL_ENABLED = PGSSLMODE === 'require';
+
 const pool = new Pool({
   host: DB_HOST,
   port: DB_PORT,
   database: DB_NAME,
   user: DB_USER,
   password: DB_PASSWORD,
+  ssl: DB_SSL_ENABLED ? { rejectUnauthorized: true } : false,
+  max: Number(process.env.DB_POOL_MAX || 20),
+  idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS || 30000),
+  connectionTimeoutMillis: Number(process.env.DB_CONNECT_TIMEOUT_MS || 10000),
+  allowExitOnIdle: true,
 });
 
 pool.on('connect', () => {

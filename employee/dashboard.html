@@ -15,13 +15,13 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-icon">★</div>
+          <div class="logo-icon"><span class="icon icon-star" aria-hidden="true"></span></div>
           <div class="logo-text">
             <span class="logo-title">KSOP Kelas II</span>
             <span class="logo-subtitle">Cirebon</span>
           </div>
         </div>
-        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">☰</button>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
       </div>
       <nav class="sidebar-nav" id="sidebarNav"></nav>
       <div class="sidebar-footer"></div>
@@ -69,7 +69,7 @@
     <div class="modal modal-lg">
       <div class="modal-header">
         <h3 class="modal-title" id="modalTitle">Detail Laporan</h3>
-        <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+        <button type="button" class="modal-close" data-click-action="closeModal">&times;</button>
       </div>
       <div class="modal-body" id="modalBody"></div>
       <div class="modal-footer" id="modalFooter"></div>
@@ -79,9 +79,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/layout-shared.js"></script>
   <script src="/js/navigation/employee-navigation.js?v=2"></script>
   <script src="/js/layouts/employee-layout.js?v=2"></script>
-  <script src="/app.js"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/translations.js"></script>
   <script src="/employee/_layout.js"></script>
   <script src="/employee/dashboard.js?v=9"></script>

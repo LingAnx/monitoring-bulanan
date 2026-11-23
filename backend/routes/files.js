@@ -5,19 +5,17 @@
 //   - Autentikasi wajib
 //   - Akses per-role: PEGAWAI (miliknya), ADMIN_SEKSI (seksi sama),
 //     KEPALA_KANTOR (semua), SUPERADMIN (semua)
-//   - Streaming dari storage root
+//   - Streaming dari private Object Storage
 //   - Header keamanan: nosniff, attachment, no-store
 // ============================================================
 const express = require('express');
-const path = require('path');
-const fs = require('fs');
 const router = express.Router();
 const pool = require('../db/database');
-const { authenticateToken, requireRole } = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
+const { getObjectStorage } = require('../lib/object-storage');
 const {
   canAccessFile,
-  streamFile,
-  isWithinStorageRoot,
 } = require('../middleware/file-security');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -58,8 +56,10 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses ke file ini' });
     }
 
-    // Streaming download
-    const { stream, mime } = streamFile(file.storage_key, file.detected_mime_type, file.original_name);
+    // Streaming download dari private Object Storage setelah RBAC lolos.
+    const storedObject = await getObjectStorage().getObjectStream(file.storage_key);
+    const stream = storedObject.stream;
+    const mime = file.detected_mime_type || storedObject.contentType;
 
     // Sanitasi nama download — hapus karakter berbahaya
     const safeName = file.original_name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
@@ -70,18 +70,29 @@ router.get('/:id', authenticateToken, async (req, res) => {
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('Content-Length', file.size_bytes);
 
-    // Audit log — tanpa token, tanpa isi file
+    // Audit log — download tetap berlanjut bila audit gagal,
+    // tetapi kegagalan TIDAK di-swallow sunyi (observability).
+    // Log hanya: request ID, user ID, file ID, aksi, pesan
+    // error yang sudah disanitasi. TANPA token, path, isi file.
     pool.query(
-      `INSERT INTO audit_trail (id_user, action, details)
+      `INSERT INTO audit_trail (id_user, action, detail)
        VALUES ($1, 'download_file', $2)`,
       [
         req.user.id,
         JSON.stringify({ file_id: fileId, original_name: file.original_name, size_bytes: file.size_bytes }),
       ]
-    ).catch(() => { /* audit log tidak boleh gagal download */ });
+    ).catch((err) => {
+      logger.error('Audit log download gagal — download tetap dilanjutkan', {
+        requestId: req.requestId,
+        userId: req.user.id,
+        fileId,
+        action: 'download_file',
+        error: (err && err.message) ? String(err.message).slice(0, 200) : 'unknown',
+      });
+    });
 
     stream.on('error', (err) => {
-      console.error('[files] stream error:', err.message);
+      logger.error('[files] stream error', { error: err.message });
       if (!res.headersSent) {
         res.status(500).json({ success: false, message: 'Gagal membaca file' });
       } else {
@@ -99,8 +110,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
     if (err.status === 400) {
       return res.status(400).json({ success: false, message: err.message });
     }
-    console.error('[files]', err.message);
-    res.status(500).json({ success: false, message: 'Gagal memproses download' });
+    logger.error('[files] error', { error: err.message });
+    res.status(err.status === 503 ? 503 : 500).json({ success: false, message: 'Gagal memproses download' });
   }
 });
 
@@ -144,7 +155,7 @@ router.get('/:id/metadata', authenticateToken, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('[files metadata]', err.message);
+    logger.error('[files metadata] error', { error: err.message });
     res.status(500).json({ success: false, message: 'Gagal mengambil metadata' });
   }
 });

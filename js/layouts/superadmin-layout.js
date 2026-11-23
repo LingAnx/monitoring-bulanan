@@ -91,7 +91,9 @@
       className: 'mobile-menu-btn',
       id: 'mobileMenuBtn',
       type: 'button',
-      'aria-label': 'Toggle menu'
+      'aria-label': 'Buka menu navigasi',
+      'aria-expanded': 'false',
+      'aria-controls': 'sidebar'
     });
     menuBtn.appendChild(icon('menu'));
     left.appendChild(menuBtn);
@@ -109,7 +111,7 @@
     right.appendChild(notifBtn);
 
     var profileWrap = el('div', { className: 'profile-wrap' });
-    profileWrap.innerHTML = '<div class="profile-trigger" id="profileTrigger"><span class="profile-avatar" id="profileAvatar">' + (user ? user.nama.charAt(0).toUpperCase() : '-') + '</span><span class="profile-name" id="profileName">' + escapeHtml(user ? user.nama : '-') + '</span></div>';
+    profileWrap.innerHTML = '<button type="button" class="profile-trigger" id="profileTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="profileDropdown" aria-label="Menu profil"><span class="profile-avatar" id="profileAvatar">' + (user ? user.nama.charAt(0).toUpperCase() : '-') + '</span><span class="profile-name" id="profileName">' + escapeHtml(user ? user.nama : '-') + '</span></button>';
     right.appendChild(profileWrap);
 
     header.appendChild(left);
@@ -120,11 +122,18 @@
     dropdown.className = 'profile-dropdown hidden';
     dropdown.id = 'profileDropdown';
     profileWrap.appendChild(dropdown);
+    function syncDropdownAria() {
+      trigger.setAttribute('aria-expanded', String(!dropdown.classList.contains('hidden')));
+    }
     trigger.addEventListener('click', function (e) {
       e.stopPropagation();
       dropdown.classList.toggle('hidden');
+      syncDropdownAria();
     });
-    document.addEventListener('click', function () { dropdown.classList.add('hidden'); });
+    document.addEventListener('click', function () {
+      dropdown.classList.add('hidden');
+      syncDropdownAria();
+    });
     [
       { label: 'Manajemen Pengguna', href: '/superadmin/pengguna.html' }, 
     ].forEach(function (item) {
@@ -144,41 +153,71 @@
     dropdown.appendChild(logoutLi);
   }
 
+  // ── Mobile Menu ─────────────────────────────────────
+  var _escapeBound = false;
+
   function setupMobileMenu() {
     var sidebar = document.getElementById('sidebar');
     var overlay = document.getElementById('sidebarOverlay');
     var menuBtn = document.getElementById('mobileMenuBtn');
     var toggleBtn = document.getElementById('sidebarToggle');
 
-    function toggleSidebar() {
-      if(!sidebar) return;
-      
-      sidebar.classList.toggle('open');
-
-      if(overlay) {
-        if (sidebar.classList.contains('open')) {
-          overlay.classList.add('active');
-        } else {
-          overlay.classList.remove('active');
-        }
-      }
+    function syncAria() {
+      var expanded = !!(sidebar && sidebar.classList.contains('open'));
+      if (menuBtn) menuBtn.setAttribute('aria-expanded', String(expanded));
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(expanded));
     }
 
+    function openSidebar() {
+      if (sidebar) sidebar.classList.add('open');
+      if (overlay) overlay.classList.add('active');
+      syncAria();
+    }
     function closeSidebar() {
       if (sidebar) sidebar.classList.remove('open');
       if (overlay) overlay.classList.remove('active');
+      syncAria();
+    }
+    function toggleSidebar() {
+      if (!sidebar) return;
+      var open = !sidebar.classList.contains('open');
+      if (open) openSidebar(); else closeSidebar();
     }
 
-    if (menuBtn) {
-      menuBtn.addEventListener('click', toggleSidebar);
+    // Tombol hamburger di topbar — pasang listener per tombol
+    // (tombol baru dibuat tiap renderTopbar, jadi aman dari duplikat).
+    if (menuBtn) menuBtn.addEventListener('click', toggleSidebar);
+    // Toggle di sidebar-header (desktop collapse)
+    if (toggleBtn) toggleBtn.addEventListener('click', toggleSidebar);
+    // Overlay menutup
+    if (overlay) overlay.addEventListener('click', closeSidebar);
+
+    // Escape menutup sidebar + dropdown profile — SATU listener global
+    // (flag modul mencegah duplikat saat init berulang).
+    if (!_escapeBound) {
+      _escapeBound = true;
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        closeSidebar();
+        var dd = document.getElementById('profileDropdown');
+        if (dd) {
+          dd.classList.add('hidden');
+          var trig = document.getElementById('profileTrigger');
+          if (trig) trig.setAttribute('aria-expanded', 'false');
+        }
+      });
     }
 
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', toggleSidebar);
-    }
-
-    if (overlay) {
-      overlay.addEventListener('click', closeSidebar);
+    // Bersihkan state open/active saat kembali ke desktop (resize).
+    // Listener dipasang sekali — guarded oleh data attr.
+    if (!document.body.hasAttribute('data-sidebar-resize-bound')) {
+      document.body.setAttribute('data-sidebar-resize-bound', '1');
+      var mq = window.matchMedia('(min-width: 1025px)');
+      var handler = function () {
+        if (mq.matches) closeSidebar();
+      };
+      if (mq.addEventListener) mq.addEventListener('change', handler);
+      else if (mq.addListener) mq.addListener(handler);
     }
   }
 

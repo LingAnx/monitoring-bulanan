@@ -400,8 +400,13 @@ const T = {
   }
 };
 
-// Helper function for status labels
+// Helper function for status labels — mendelegasikan ke _coreStatusLabel
+// global (js/security/encoding.js) jika tersedia, agar konsisten dengan
+// allowlist status di seluruh aplikasi.
 function statusLabel(status) {
+  if (typeof window._coreStatusLabel === 'function') {
+    return window._coreStatusLabel(status);
+  }
   return T.status[status] || status;
 }
 

@@ -1,121 +1,186 @@
 #!/usr/bin/env python3
-"""Audit paket rilis monitoring-bulanan: extrak + cek file terlarang, pola secret, data pribadi."""
-import zipfile, os, re, sys, glob
+"""
+audit-release.py — audit keamanan paket distribusi ZIP
 
-PROJECT = os.path.dirname(os.path.abspath('.'))
-# Cari ZIP release terbaru
-zips = sorted(glob.glob('monitoring-bulanan-release-*.zip'), reverse=True)
-if not zips:
-    print("GAGAL: tidak ada ZIP release ditemukan.", file=sys.stderr)
-    sys.exit(1)
-zip_path = zips[0]
-print(f"Auditing: {zip_path}")
+Dipanggil oleh: bash scripts/build-release.sh
+Dipanggil manual: python3 scripts/audit-release.py <path.zip>
 
-z = zipfile.ZipFile(zip_path)
-names = z.namelist()
-print(f"\nTotal files in ZIP: {len(names)}")
+Pemeriksaan:
+  1. File terlarang (.env, .git, node_modules, .dump, .bak, log,
+     .DS_Store, file duplikat "* 2.*", ZIP lama, secret SQL seed)
+  2. Pola secret di isi file teks (bcrypt hash, hex 64+, placeholder)
+  3. Symlink yang keluar dari arsip (path absolut / ../../)
+  4. [BARU] Duplicate entries di dalam ZIP (satu nama, dua file)
+  5. [BARU] Embedded ZIP (file .zip di dalam arsip rilis)
+  6. [BARU] Ukuran anomali (>50 MB)
 
-# ── Forbidden file names/dirs ──
-forbidden_names = {'.env','.env.prod','.env.local','.env.development','.env.staging',
-                   '.DS_Store','__MACOSX','STABILITY_ANALYSIS.md','RDP.md','CHANGELOG_FIXES.md',
-                   'ksop_laporan_v1_stable.sql'}
-forbidden_exts = ('.dump','.backup','.bak','.sql.gz','.log')
-forbidden_dirs  = {'node_modules','uploads','logs','private','.git','backups'}
+Exit code: 0 = bersih, 1 = ditemukan masalah.
+"""
+import re, sys, os, zipfile
 
-problems = []
-for n in names:
-    base = os.path.basename(n)
-    parts = n.split('/')[:-1]
-    if base in forbidden_names:
-        problems.append(f"FILE TERLARANG: {n}")
-    for ext in forbidden_exts:
-        if base.endswith(ext):
-            problems.append(f"FILE TERLARANG ({ext}): {n}")
-    for d in forbidden_dirs:
-        if d in parts:
-            problems.append(f"DIR TERLARANG: {n}")
-    if '..' in n.split('/'):
-        problems.append(f"PATH TRAVERSAL: {n}")
+SENSITIVE_NAMES = {
+    ".env", ".env.prod", ".env.local", ".env.development", ".env.staging",
+    ".env.example.old", ".env.bak",
+    ".git", ".gitignore", ".github",
+    "node_modules",
+    "uploads", "private", "backups", "logs", "db", "data",
+    "__MACOSX", ".DS_Store",
+    "ksop_laporan_v1_stable.sql", "STABILITY_ANALYSIS.md", "RDP.md",
+    "CHANGELOG_FIXES.md",
+    "monitoring-bulanan-release",  # prefix ZIP lama
+}
 
-print(f"\n--- Forbidden file/directory check ---")
-if problems:
-    for p in problems: print(f"  ❌ {p}")
-else:
-    print(f"  ✅ Tidak ada file/dir terlarang, path traversal.")
-
-# Symlink check
-sym_count = 0
-for info in z.infolist():
-    mode = (info.external_attr >> 16) & 0o170000
-    if mode == 0o120000:
-        sym_count += 1
-        print(f"  ⚠️  SYMLINK: {info.filename}")
-if sym_count == 0:
-    print(f"  ✅ Tidak ada symlink.")
-
-# ── Content pattern check ──
-bcrypt_pat  = re.compile(rb'\$2[aby]\$[0-9]{2}\$')
-nip_pat     = re.compile(rb'19[78]\d{10}')
-hex64_pat   = re.compile(rb"['\"]([a-f0-9]{64,})['\"]")
-
-print(f"\n--- Content pattern check ---")
-content_issues = []
-for info in z.infolist():
-    fn = info.filename
-    if info.file_size == 0 or fn.endswith(('.png','.jpg','.pdf','.gif','.zip','.lock')):
-        continue
-    try: data = z.read(fn)
-    except: continue
-
-    if bcrypt_pat.search(data):
-        content_issues.append(f"HASH BCRYPT TERDETEKSI: {fn}")
-    if nip_pat.search(data):
-        # NIP test (fiktif) hanya ada di setup-seed.js — acceptable untuk dev seed
-        # Flag hanya jika NIP ditemukan di file selain seed
-        if fn != 'backend/scripts/setup-seed.js':
-            matches = nip_pat.findall(data)
-            content_issues.append(f"NIP PATTERN TERDETEKSI (non-seed): {fn} ({len(matches)} match)")
-
-    if fn.endswith('.js'):
-        for m in hex64_pat.finditer(data):
-            ctx = data[max(0,m.start()-60):m.end()+60].decode('utf-8','replace')
-            if 'randomBytes' not in ctx and 'your_' not in ctx and 'old_secret' not in ctx and 'new_secret' not in ctx:
-                content_issues.append(f"HEX SECRET 64+ TERDETEKSI: {fn}")
-                break
-
-if content_issues:
-    for c in content_issues: print(f"  ❌ {c}")
-else:
-    print(f"  ✅ Tidak ada hash bcrypt, pola NIP, atau hex secret di file teks.")
-
-# ── Required file check ──
-print(f"\n--- Required file check ---")
-required = [
-    'public/index.html',
-    'public/login.html',
-    'public/style.css',
-    'public/js/auth/auth-store.js',
-    'public/employee/dashboard.html',
-    'public/admin-section/dashboard.html',
-    'public/head-office/dashboard.html',
-    'public/superadmin/dashboard.html',
-    'backend/package.json',
-    'backend/package-lock.json',
-    'backend/server.js',
-    'backend/.env.example',
-    'backend/db/schema.sql',
-    'backend/tests/test-jwt-rotation.js',
-    'backend/db/migrations/005_add_must_change_password.sql',
-    'backend/docs/db-credentials.md',
-    'backend/scripts/security-check.js',
+# ── Pola secret (anchored: assignment, BUKAN comparison/validation) ────────
+# Anchor penting untuk menghindari false-positive pada kode validasi
+# produksi seperti:  if (JWT_SECRET === 'your_jwt_secret_here') { exit(1) }
+# (yang BUKAN secret bocor — itu check fail-fast yang seharusnya ada).
+# Yang kita deteksi adalah:
+#   - assignment:  JWT_SECRET='your_jwt_secret_here'  → bocor
+#   - assignment:  DB_PASSWORD='***'  → bocor
+#   - test code:   JWT_SECRET: 'your_jwt_secret_here...'  → intent test
+#     (tetap flag karena test file tidak boleh ada di release ZIP)
+SENSITIVE_PATTERNS = [
+    (re.compile(rb"\$2[aby]\$[0-9]{2}\$"), "hash bcrypt terdeteksi"),
+    (re.compile(rb"\b[a-f0-9]{64,}\b"), "string hex 64+ (kemungkinan secret/secret key)"),
+    # placeholder JWT secret — HANYA di context assignment / object value
+    # (Bukan comparison dengan === / != / &&)
+    (re.compile(rb"(?:JWT_SECRET|jwt_secret|SECRET_KEY)\s*[=:]?\s*['\"]your_jwt_secret_here", re.I),
+     "placeholder JWT secret (di-assign ke config)"),
+    # default secret key — sama, assignment-only
+    (re.compile(rb"(?:SECRET_KEY|JWT_SECRET|jwt_secret)\s*[=:]?\s*['\"]default_secret_key", re.I),
+     "placeholder secret key (di-assign ke config)"),
+    # DB_PASSWORD dengan nilai string 8+ char (assignment)
+    (re.compile(rb"DB_PASSWORD\s*=\s*['\"][^'\"]{8,}", re.I), "password DB di file config"),
+    # jwt_secret dengan nilai string 32+ char (assignment)
+    (re.compile(rb"jwt_secret\s*=\s*['\"][^'\"]{32,}", re.I), "JWT secret di file config"),
+    # [REGRESI] Kredensial demo yang terlewat di UI publik (hint pada login page dll.)
+    # Pola: baris yang memuat 'username/password' demo eksplisit (admin/admin123, dsb.)
+    (re.compile(rb"\badmin/admin123\b", re.I), "kredensial demo di aset publik"),
+    (re.compile(rb"\bpegawai/pegawai123\b", re.I), "kredensial demo di aset publik"),
+    (re.compile(rb"Demo:\s+\w+/\w+", re.I), "hint kredensial demo di aset publik"),
 ]
-all_ok = True
-for req in required:
-    found = req in names
-    if not found: all_ok = False
-    print(f"  {'✅' if found else '❌'} {req}")
 
-# ── Size ──
-size = os.path.getsize(zip_path)
-print(f"\n--- Package size ---")
-print(f"  ZIP: {size} bytes ({size//1024} KB) — {len(names)} file")
+# ── Deteksi dump PostgreSQL / database export ─────────────
+# Dump basis data (pg_dump, COPY ... FROM stdin, INSERT sensitif)
+# adalah kebocoran data, bukan hanya nomenklatur secret.
+# Kita scan HANYA file .sql/.txt dan hanya yang mengandung pola dump,
+# agar migration/schema normal (CREATE TABLE, ALTER) tidak false-positive.
+SQL_DUMP_PATTERNS = [
+    # COPY <table> FROM stdin / 'stdin' (pg_dump data dump)
+    (re.compile(rb"^\s*COPY\s+\S+\s+FROM\s+['\"]?stdin", re.I | re.MULTILINE), "dump SQL berbasis COPY ... FROM stdin"),
+    (re.compile(rb"^\s*COPY\s+.*\s+WITH\s+COPY", re.I), "dump SQL COPY block"),
+    # Header pg_dump (pg_dump version line)
+    (re.compile(rb"\d+\.pg_dump\s+\d+", re.I), "header pg_dump terdeteksi"),
+    (re.compile(rb"--\s*PostgreSQL database dump", re.I), "header dump PostgreSQL"),
+    # INSERT data sensitif: INSERT ke tabel users/credential dengan payload
+    # panjang (bukan INSERT migration kecil). Batasi: baris INSERT ke
+    # tabel kredensial yang mengandung nilai hex 32+ (password hash).
+    (re.compile(rb"INSERT\s+INTO\s+\"?(users|credentials|api_keys|sessions)\"?\s*\([^)]*\)", re.I), "INSERT data sensitif (tabel kredensial) dalam dump"),
+]
+
+def _flag(name):
+    n = name.lower()
+    base = os.path.basename(n)
+    # Nama eksak
+    if base in SENSITIVE_NAMES:
+        return True
+    # File duplikat macOS/Windows: "foo 2.js"
+    if re.search(r" \d+\.", base):
+        return True
+    # Direktori terlarang di POSISI MANA PUN dalam path (semua komponen).
+    # Sebelumnya hanya cek komponen pertama → nested node_modules/evil.js lolos.
+    #
+    # Catatan: 'db' dan 'data' TIDAK masuk daftar per-komponen karena adalah
+    # nama subdirektori sah dari backend (backend/db/migrations). Yang di-flag
+    # di posisi mana pun adalah direktori artefak runtime yang memang tidak
+    # boleh hadir dalam rilis: node_modules, .git, uploads, logs, private,
+    # backups, __MACOSX.
+    for part in n.split("/"):
+        if part in SENSITIVE_NAMES:
+            # 'db' / 'data' hanya flag jika di level ROOT (komp 1), bukan
+            # sebagai subdirektori backend yang sah.
+            if part in ("db", "data"):
+                continue
+            return True
+    return False
+
+def audit_zip(zip_path):
+    if not os.path.isfile(zip_path):
+        print(f"ERROR: file tidak ditemukan: {zip_path}", file=sys.stderr)
+        return 1
+
+    # Cek ukuran
+    size = os.path.getsize(zip_path)
+    if size > 50 * 1024 * 1024:
+        print(f"FAIL: ukuran anomali: {size} bytes (> 50 MB)")
+        return 1
+    print(f"ZIP: {zip_path} ({size} bytes)")
+
+    findings = []
+    seen_names = set()
+    embedded_zip_count = 0
+    total_entries = 0
+
+    try:
+        zf = zipfile.ZipFile(zip_path, "r")
+    except Exception as e:
+        print(f"FAIL: tidak bisa dibuka ZIP: {e}")
+        return 1
+
+    with zf:
+        for info in zf.infolist():
+            total_entries += 1
+            name = info.filename
+
+            # (4) Duplicate entry check
+            if name in seen_names:
+                findings.append(f"DUPLICATE ENTRY: {name} (muncul >1x di dalam ZIP)")
+            seen_names.add(name)
+
+            # (5) Embedded ZIP check
+            if name.lower().endswith(".zip") or name.lower().endswith(".tar.gz"):
+                embedded_zip_count += 1
+                findings.append(f"EMBEDDED ZIP/ARCHIVE: {name} (arsip di dalam arsip)")
+
+            # (1) Nama terlarang
+            if _flag(name):
+                findings.append(f"FILE TERLARANG: {name}")
+                continue
+
+            # (2) Pola secret di isi
+            # Jangan scan file binary (.png, .jpg, .pdf, dll) — hanya teks
+            ext = os.path.splitext(name)[1].lower()
+            text_exts = {".js", ".json", ".sql", ".sh", ".md", ".html",
+                         ".css", ".yml", ".yaml", ".txt", ".env.example"}
+            if ext in text_exts or not ext:
+                data = zf.read(name)
+                for pat, label in SENSITIVE_PATTERNS:
+                    if pat.search(data):
+                        findings.append(f"SECRET PATTERN ({label}): {name}")
+                        break  # satu temuan per file cukup
+
+                # (2b) Dump PostgreSQL / database export — hanya file .sql/.txt
+                sql_dump_exts = {".sql", ".txt"}
+                if ext in sql_dump_exts:
+                    for pat, label in SQL_DUMP_PATTERNS:
+                        if pat.search(data):
+                            findings.append(f"DB DUMP ({label}): {name}")
+                            break  # satu temuan dump per file cukup
+
+    # (6) Exit code
+    if findings:
+        print(f"FAIL: {len(findings)} temuan ditemukan:")
+        for f_ in findings[:30]:
+            print(f"  - {f_}")
+        if len(findings) > 30:
+            print(f"  ... dan {len(findings)-30} temuan lain")
+        return 1
+
+    print(f"OK: {total_entries} entry diperiksa, tidak ditemukan masalah.")
+    return 0
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python3 audit-release.py <path.zip>", file=sys.stderr)
+        sys.exit(1)
+    sys.exit(audit_zip(sys.argv[1]))

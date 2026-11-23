@@ -130,7 +130,7 @@ function addActivityRow() {
     <td>${tbody.children.length + 1}</td>
     <td><input type="date" class="act-date"></td>
     <td><input type="text" class="act-kegiatan" placeholder="Deskripsi kegiatan..."></td>
-    <td><button type="button" class="btn btn-sm btn-danger" onclick="removeActivityRow(this)">Hapus</button></td>
+    <td><button type="button" class="btn btn-sm btn-danger" data-click-action="removeActivityRow" data-action-self="true">Hapus</button></td>
   `;
   tbody.appendChild(row);
 }
@@ -211,7 +211,7 @@ function renderLampiranList(files) {
         <div class="lampiran-size">${formatFileSize(f.size)}</div>
       </div>
       ${dlUrl ? `<button class="lampiran-download" data-file-id="${f.id || ''}" data-legacy-url="${escapeHtmlAttr(f.url || '')}" title="Unduh">⬇</button>` : ''}
-      <button class="lampiran-remove" onclick="removeLampiran(${i})" title="Hapus">&times;</button>
+      <button type="button" class="lampiran-remove" data-click-action="removeLampiran" data-action-arg="${i}" title="Hapus">&times;</button>
     </div>
   `;}).join('');
 

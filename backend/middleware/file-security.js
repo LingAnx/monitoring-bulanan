@@ -412,16 +412,63 @@ async function canAccessFile(user, fileRow) {
 }
 
 /**
- * Hapus file fisik secara aman (untuk pembersihan setelah kegagalan).
+ * Hapus file fisik secara aman DARI STORAGE KEY (untuk pembersihan setelah kegagalan).
+ *
+ * KONTRAK: parameter HANYA storage key relatif (mis. "ab/uuid.pdf"), BUKAN absolute path.
+ * - resolve: STORAGE_ROOT + key
+ * - validasi isWithinStorageRoot SEBELUM unlink
+ * - path di luar STORAGE_ROOT TIDAK PERNAH dihapus
+ *
+ * Return: true jika file ditemukan dan dihapus, false jika tidak ada.
  */
 function removeFileSafely(storageKey) {
+  if (!storageKey || typeof storageKey !== 'string') return false;
+  // Tolak jika pemanggil keliru mengirim absolute path (bukan storage key)
+  const full = path.resolve(STORAGE_ROOT, storageKey);
+  if (!isWithinStorageRoot(full)) {
+    console.error('[file-security] removeFileSafely: path hasil resolve di luar STORAGE_ROOT, tidak dihapus:', storageKey);
+    return false;
+  }
   try {
-    const full = path.join(STORAGE_ROOT, storageKey);
-    if (!isWithinStorageRoot(full)) return;
-    if (fs.existsSync(full)) fs.unlinkSync(full);
+    if (fs.existsSync(full)) {
+      fs.unlinkSync(full);
+      return true;
+    }
+    return false;
   } catch (e) {
-    // Log saja — tidak boleh gagal
     console.error('[file-security] gagal hapus file', e.message);
+    return false;
+  }
+}
+
+/**
+ * Hapus file fisik dari ABSOLUTE PATH (temp file multer / path yang sudah
+ * direferensikan absolut).
+ *
+ * KONTRAK: parameter HANYA absolute path hasil resolve yang berada di dalam
+ * STORAGE_ROOT (atau subdirektorinya seperti _tmp).
+ * - resolve kembali path (anti path-traversal)
+ * - validasi isWithinStorageRoot SEBELUM unlink
+ * - path di luar STORAGE_ROOT TIDAK PERNAH dihapus
+ *
+ * Return: true jika file ditemukan dan dihapus, false jika tidak ada/luar root.
+ */
+function removeAbsoluteFileSafely(absolutePath) {
+  if (!absolutePath || typeof absolutePath !== 'string') return false;
+  const full = path.resolve(absolutePath);
+  if (!isWithinStorageRoot(full)) {
+    console.error('[file-security] removeAbsoluteFileSafely: path di luar STORAGE_ROOT, tidak dihapus:', absolutePath);
+    return false;
+  }
+  try {
+    if (fs.existsSync(full)) {
+      fs.unlinkSync(full);
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.error('[file-security] gagal hapus file (abs)', e.message);
+    return false;
   }
 }
 
@@ -459,6 +506,7 @@ module.exports = {
   isWithinStorageRoot,
   canAccessFile,
   removeFileSafely,
+  removeAbsoluteFileSafely,
   streamFile,
   extForMime,
   parseZipEntries,

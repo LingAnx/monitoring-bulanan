@@ -17,7 +17,8 @@ mkdir -p "${PUB}"
 
 # Root frontend files
 for f in \
-  index.html login.html index.js login.js app.js translations.js \
+  index.html login.html change-password.html \
+  index.js login.js change-password.js app.js translations.js \
   admin-section-layout.css approve.css dashboard.css form.css \
   head-office-layout.css index.css lampiran.css laporan.css login.css \
   notifikasi.css pegawai.css profil.css rekap.css style.css users.css verify.css

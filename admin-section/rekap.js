@@ -19,6 +19,13 @@ try {
 }
 
   initAdminSectionPage('Rekap Laporan');
+
+  // Tombol "Tampilkan" — delegasi via data-action
+  document.getElementById('loadRekapBtn')?.addEventListener('click', loadRekap);
+
+  // Tombol "Export CSV" — satu listener, tanpa inline onclick
+  document.getElementById('exportRekapBtn')?.addEventListener('click', exportRekapCSV);
+
   await loadStats();
   await loadRekap();
 });
@@ -103,8 +110,8 @@ async function loadRekap() {
   }
 }
 
-window.exportCSV = function(e) {
-  e.preventDefault();
+// Export CSV Rekap — listener langsung (tanpa inline onclick)
+function exportRekapCSV() {
   const bulan = document.getElementById('filterBulan').value;
   const tahun = document.getElementById('filterTahun').value;
   const params = new URLSearchParams();
@@ -121,4 +128,7 @@ window.exportCSV = function(e) {
       a.click();
     })
     .catch(() => showNotification('Gagal export', 'error'));
-};
+}
+
+// Legacy alias — dipertahankan untuk kompatibilitas; tidak lagi dipakai UI.
+window.exportCSV = function() { exportRekapCSV(); };

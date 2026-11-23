@@ -38,7 +38,7 @@ async function loadProfileForm() {
       </div>
     </div>
 
-    <form id="profileForm" class="profile-form" onsubmit="updateProfile(event)">
+    <form id="profileForm" class="profile-form" data-submit-action="updateProfile" data-action-event="true">
       <div class="form-row">
         <div class="form-group">
           <label for="nama">Nama Lengkap</label>

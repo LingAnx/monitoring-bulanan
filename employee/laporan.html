@@ -14,13 +14,13 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-icon">★</div>
+          <div class="logo-icon"><span class="icon icon-star" aria-hidden="true"></span></div>
           <div class="logo-text">
             <span class="logo-title">KSOP Kelas II</span>
             <span class="logo-subtitle">Cirebon</span>
           </div>
         </div>
-        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">☰</button>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
       </div>
       <nav class="sidebar-nav" id="sidebarNav"></nav>
       <div class="sidebar-footer"></div>
@@ -57,8 +57,8 @@
               <select id="filterTahun" title="Filter tahun" class="filter-select">
                 <option value="2026">2026</option><option value="2025">2025</option>
               </select>
-              <button type="button" class="btn btn-outline btn-sm" onclick="exportPDF(event)">📄 Export PDF</button>
-              <button type="button" class="btn btn-success btn-sm" onclick="exportCSV(event)">📊 Export Excel</button>
+              <button type="button" class="btn btn-outline btn-sm" data-click-action="exportPDF" data-action-event="true"><span class="icon icon-doc" aria-hidden="true"></span> Export PDF</button>
+              <button type="button" class="btn btn-success btn-sm" data-click-action="exportCSV" data-action-event="true"><span class="icon icon-chart" aria-hidden="true"></span> Export Excel</button>
             </div>
           </div>
           <div id="laporanContent">
@@ -75,9 +75,11 @@
   <script src="/translations.js"></script>
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
-      <script src="/js/navigation/employee-navigation.js?v=2"></script>
+      <script src="/js/layout-shared.js"></script>
+  <script src="/js/navigation/employee-navigation.js?v=2"></script>
   <script src="/js/layouts/employee-layout.js?v=2"></script>
-  <script src="/app.js"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/employee/_layout.js"></script>
   <script src="/employee/laporan.js?v=4"></script>
 </body>

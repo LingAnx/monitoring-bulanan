@@ -64,7 +64,7 @@ async function loadLaporan() {
           ${reports.map(r => `
             <tr>
               <td>${r.user_nama || '-'}</td>
-              <td>${r.judul || '-'}</td>
+              <td>${escapeHtmlText(r.judul || '-' )}</td>
               <td>${r.nama_seksi || '-'}</td>
               <td>${r.bulan ? (T && T.months ? T.months[r.bulan] : r.bulan) + ' ' + r.tahun : '-'}</td>
               <td><span class="badge badge-${STATUS_BADGE[r.status] || 'draft'}">${STATUS_LABEL[r.status] || r.status}</span></td>

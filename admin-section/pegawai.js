@@ -20,6 +20,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   initAdminSectionPage('Data Pegawai');
+
+  // Tombol modal — listener langsung, tanpa inline onclick
+  document.getElementById('addPegawaiBtn')?.addEventListener('click', openAddPegawai);
+  document.getElementById('closePegawaiModalBtn')?.addEventListener('click', closePegawaiModal);
+  document.getElementById('cancelPegawaiBtn')?.addEventListener('click', closePegawaiModal);
+
+  // Form submit
+  document.getElementById('pegawaiForm')?.addEventListener('submit', savePegawai);
+
   await loadPegawai();
 });
 
@@ -73,9 +82,9 @@ function renderPegawai(data) {
       <tbody>
         ${data.map(p => `
           <tr>
-            <td>${p.nama}</td>
+            <td>${escapeHtmlText(p.nama)}</td>
             <td>${p.nip || '-'}</td>
-            <td>${p.username}</td>
+            <td>${escapeHtmlText(p.username)}</td>
             <td>${p.total_laporan || 0}</td>
             <td><span class="badge badge-disetujui">${p.laporan_disetujui || 0}</span></td>
             <td>${p.terakhir_lapor || '-'}</td>
@@ -100,17 +109,27 @@ function renderPegawaiPagination(total) {
   }
   container.innerHTML = `
     <div class="pagination-buttons">
-      <button type="button" class="btn btn-sm ${currentPage === 1 ? 'disabled' : ''}" ${currentPage === 1 ? 'disabled' : ''} onclick="changePegawaiPage(${currentPage - 1})">Prev</button>
+      <button type="button" class="btn btn-sm ${currentPage === 1 ? 'disabled' : ''}" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Prev</button>
       ${Array.from({length: totalPages}, (_, i) => i + 1)
         .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
         .map((p, i, arr) => {
           if (i > 0 && p - arr[i-1] > 1) return `<span>...</span>`;
-          return `<button type="button" class="btn btn-sm ${p === currentPage ? 'active' : ''}" onclick="changePegawaiPage(${p})">${p}</button>`;
+          return `<button type="button" class="btn btn-sm ${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`;
         }).join('')}
-      <button type="button" class="btn btn-sm ${currentPage === totalPages ? 'disabled' : ''}" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePegawaiPage(${currentPage + 1})">Next</button>
+      <button type="button" class="btn btn-sm ${currentPage === totalPages ? 'disabled' : ''}" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
     </div>
   `;
 }
+
+// Delegasi halaman — satu listener untuk semua tombol pagination
+document.addEventListener('click', event => {
+  const btn = event.target.closest('[data-page]');
+  if (!btn) return;
+  const page = Number.parseInt(btn.dataset.page, 10);
+  if (Number.isInteger(page) && page >= 1) {
+    changePegawaiPage(page);
+  }
+});
 
 window.changePegawaiPage = function(page) {
   if (page < 1) return;

@@ -23,20 +23,31 @@ async function loadNotifications() {
     container.innerHTML = `
       <div style="display:flex;flex-direction:column;gap:8px">
         ${notifs.map(n => `
-          <div style="padding:12px 16px;border-radius:10px;border:1px solid var(--gray-200);background:${n.is_read ? 'var(--gray-50)' : '#fff'};display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div data-notif-id="${n.id}" style="padding:12px 16px;border-radius:10px;border:1px solid var(--gray-200);background:${n.is_read ? 'var(--gray-50)' : '#fff'};display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
             <div style="min-width:0">
               <div style="font-weight:600;font-size:0.9rem;color:var(--gray-900)">${escapeHtml(n.title)} ${n.is_read ? '' : '<span style="background:var(--primary);color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:99px;vertical-align:middle">BARU</span>'}</div>
               <div style="font-size:0.82rem;color:var(--gray-600);margin-top:2px">${escapeHtml(n.message)}</div>
               <div style="font-size:0.72rem;color:var(--gray-400);margin-top:4px">${formatDateTime(n.created_at)}</div>
             </div>
             <div style="display:flex;gap:6px;flex-shrink:0">
-              ${!n.is_read ? `<button class="btn btn-sm btn-outline" onclick="markRead(${n.id})">Tandai dibaca</button>` : ''}
-              <button class="btn btn-sm btn-danger" onclick="deleteNotif(${n.id})">Hapus</button>
+              ${!n.is_read ? `<button class="btn btn-sm btn-outline act-notif-read">Tandai dibaca</button>` : ''}
+              <button class="btn btn-sm btn-danger act-notif-del">Hapus</button>
             </div>
           </div>
         `).join('')}
       </div>
     `;
+
+    // Event delegation for notification actions
+    // FIX: dataset.notifId adalah string DOM — konversi eksplisit ke Number.
+    container.querySelectorAll('[data-notif-id]').forEach(el => {
+      const nid = Number(el.dataset.notifId);
+      if (!Number.isInteger(nid) || nid <= 0) return;
+      const readBtn = el.querySelector('.act-notif-read');
+      const delBtn = el.querySelector('.act-notif-del');
+      if (readBtn) readBtn.addEventListener('click', () => markRead(nid));
+      if (delBtn) delBtn.addEventListener('click', () => deleteNotif(nid));
+    });
   } catch (err) {
     container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><div class="empty-state-text">Gagal memuat notifikasi.</div></div>';
   }

@@ -7,6 +7,7 @@ const {
   authenticateToken,
   requireRole
 } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 
 /* =========================================================
@@ -98,37 +99,61 @@ function parseInteger(
 
 
 function normalizeLampiran(value) {
+  // Format baru (pusat): array objek { id, downloadUrl } dari routes/files.js.
+  // Format lama (kompatibilitas frontend pre-Tahap-4): array string URL.
+  // Setiap elemen diverifikasi — elemen tak valid DIHAPUS, bukan membuat
+  // seluruh field jadi null (sebelumnya satu URL beracun merombak semua).
   if (value === undefined) {
     return undefined;
   }
 
-  if (
-    value === null ||
-    value === ''
-  ) {
+  if (value === null || value === '') {
     return null;
   }
 
+  let arr;
   if (Array.isArray(value)) {
-    return value;
-  }
-
-  // Compatibility jika frontend lama
-  // mengirim JSON string.
-  if (typeof value === 'string') {
+    arr = value;
+  } else if (typeof value === 'string') {
+    // Compatibility jika frontend lama mengirim JSON string.
     try {
       const parsed = JSON.parse(value);
-
-      return Array.isArray(parsed)
-        ? parsed
-        : null;
-
+      arr = Array.isArray(parsed) ? parsed : null;
     } catch {
       return null;
     }
+  } else {
+    return null;
   }
 
-  return null;
+  if (arr === null) return null;
+
+  // Validasi bentuk elemen: string URL atau objek { id, downloadUrl }.
+  const safe = [];
+  for (const item of arr) {
+    if (typeof item === 'string') {
+      const s = String(item).trim();
+      if (!s) continue;
+      // URL lama /uploads/<nama> DITOLAK (endpoint static sudah tidak ada
+      // di server; hanya bentuk /api/files/<uuid> yang sah).
+      if (s.startsWith('/api/files/')) {
+        safe.push({ downloadUrl: s });
+      }
+      // String lain (path filesystem lama) diabaikan.
+    } else if (item && typeof item === 'object') {
+      const obj = {};
+      if (typeof item.id === 'string' && /^[0-9a-fA-F-]{36}$/.test(item.id)) {
+        obj.id = item.id;
+      }
+      if (typeof item.downloadUrl === 'string' && /^\/api\/files\//.test(item.downloadUrl)) {
+        obj.downloadUrl = item.downloadUrl;
+      }
+      // Simpan hanya bagian yang sah; lewati objek kosong.
+      if (Object.keys(obj).length > 0) safe.push(obj);
+    }
+    // Elemen tak valid (number, null, dst.) diabaikan.
+  }
+  return safe.length > 0 ? safe : null;
 }
 
 
@@ -704,10 +729,7 @@ router.get(
 
     } catch (error) {
 
-      console.error(
-        'Error fetching laporan:',
-        error
-      );
+      logger.error('Error fetching laporan', { error: error.message });
 
       return res.status(500).json({
         success: false,
@@ -997,10 +1019,7 @@ router.get(
 
     } catch (error) {
 
-      console.error(
-        'Error fetching stats:',
-        error
-      );
+      logger.error('Error fetching stats', { error: error.message });
 
       return res.status(500).json({
         success: false,
@@ -1207,13 +1226,15 @@ router.post(
         await client.query(
           'ROLLBACK'
         );
-      } catch {}
+      } catch (rollbackErr) {
+        logger.error('Rollback gagal — laporan.create', {
+          requestId: req.requestId,
+          error: (rollbackErr && rollbackErr.message) ? String(rollbackErr.message).slice(0, 200) : 'unknown',
+        });
+      }
 
 
-      console.error(
-        'Error creating laporan:',
-        error
-      );
+      logger.error('Error creating laporan', { error: error.message });
 
 
       return res.status(500).json({
@@ -1507,13 +1528,15 @@ router.put(
         await client.query(
           'ROLLBACK'
         );
-      } catch {}
+      } catch (rollbackErr) {
+        logger.error('Rollback gagal — laporan.update', {
+          requestId: req.requestId,
+          error: (rollbackErr && rollbackErr.message) ? String(rollbackErr.message).slice(0, 200) : 'unknown',
+        });
+      }
 
 
-      console.error(
-        'Error updating laporan:',
-        error
-      );
+      logger.error('Error updating laporan', { error: error.message });
 
 
       return res.status(500).json({
@@ -1737,13 +1760,15 @@ router.post(
         await client.query(
           'ROLLBACK'
         );
-      } catch {}
+      } catch (rollbackErr) {
+        logger.error('Rollback gagal — laporan.submit', {
+          requestId: req.requestId,
+          error: (rollbackErr && rollbackErr.message) ? String(rollbackErr.message).slice(0, 200) : 'unknown',
+        });
+      }
 
 
-      console.error(
-        'Error submitting laporan:',
-        error
-      );
+      logger.error('Error submitting laporan', { error: error.message });
 
 
       return res.status(500).json({
@@ -2068,13 +2093,15 @@ router.post(
         await client.query(
           'ROLLBACK'
         );
-      } catch {}
+      } catch (rollbackErr) {
+        logger.error('Rollback gagal — laporan.verify', {
+          requestId: req.requestId,
+          error: (rollbackErr && rollbackErr.message) ? String(rollbackErr.message).slice(0, 200) : 'unknown',
+        });
+      }
 
 
-      console.error(
-        'Error verifying laporan:',
-        error
-      );
+      logger.error('Error verifying laporan', { error: error.message });
 
 
       return res.status(500).json({
@@ -2347,13 +2374,15 @@ router.post(
         await client.query(
           'ROLLBACK'
         );
-      } catch {}
+      } catch (rollbackErr) {
+        logger.error('Rollback gagal — laporan.approve', {
+          requestId: req.requestId,
+          error: (rollbackErr && rollbackErr.message) ? String(rollbackErr.message).slice(0, 200) : 'unknown',
+        });
+      }
 
 
-      console.error(
-        'Error approving laporan:',
-        error
-      );
+      logger.error('Error approving laporan', { error: error.message });
 
 
       return res.status(500).json({
@@ -2465,10 +2494,7 @@ router.get(
 
     } catch (error) {
 
-      console.error(
-        'Error fetching audit:',
-        error
-      );
+      logger.error('Error fetching audit', { error: error.message });
 
 
       return res.status(500).json({
@@ -2570,10 +2596,7 @@ router.get(
 
     } catch (error) {
 
-      console.error(
-        'Error fetching verifikasi history:',
-        error
-      );
+      logger.error('Error fetching verifikasi history', { error: error.message });
 
 
       return res.status(500).json({
@@ -2653,10 +2676,7 @@ router.get(
 
     } catch (error) {
 
-      console.error(
-        'Error fetching laporan:',
-        error
-      );
+      logger.error('Error fetching laporan', { error: error.message });
 
 
       return res.status(500).json({
@@ -2816,13 +2836,15 @@ router.delete(
         await client.query(
           'ROLLBACK'
         );
-      } catch {}
+      } catch (rollbackErr) {
+        logger.error('Rollback gagal — laporan.delete', {
+          requestId: req.requestId,
+          error: (rollbackErr && rollbackErr.message) ? String(rollbackErr.message).slice(0, 200) : 'unknown',
+        });
+      }
 
 
-      console.error(
-        'Error deleting laporan:',
-        error
-      );
+      logger.error('Error deleting laporan', { error: error.message });
 
 
       return res.status(500).json({

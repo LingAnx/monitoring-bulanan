@@ -1,5 +1,17 @@
 -- Database schema untuk Sistem Pelaporan Kinerja Bulanan KSOP Kelas II Cirebon
 -- 3-Level: Pegawai → Admin Seksi → Kepala Kantor
+--
+-- STRATEGY:
+--   schema.sql = BASELINE (fresh deployment). Apply this once to create
+--   all core objects deterministically.
+--   Migrations (001–007) = incremental changes for EXISTING databases.
+--   Do NOT re-run migrations on a database that was created from this
+--   baseline; they are idempotent but intended for evolving live data.
+--
+--   Fresh deployment workflow:
+--     1. psql -f backend/db/schema.sql
+--     2. npm run db:migrate   (all .sql migrations will show APPLIED / skip)
+--   OR simply skip step 2 — baseline already includes all migration objects.
 
 -- Seksi (units/departments)
 CREATE TABLE IF NOT EXISTS seksi (
@@ -18,8 +30,12 @@ CREATE TABLE IF NOT EXISTS users (
     id_seksi INTEGER REFERENCES seksi(id) ON DELETE SET NULL,
     role VARCHAR(50) NOT NULL DEFAULT 'PEGAWAI',
     is_active BOOLEAN DEFAULT true,
+    must_change_password BOOLEAN NOT NULL DEFAULT false,
+    token_version INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_users_role_valid
+        CHECK (role IN ('PEGAWAI', 'ADMIN_SEKSI', 'KEPALA_KANTOR', 'SUPERADMIN'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
@@ -111,6 +127,34 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(id_user, is_read);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
+
+-- Settings (key-value store for system settings — Superadmin)
+CREATE TABLE IF NOT EXISTS settings (
+    id SERIAL PRIMARY KEY,
+    key VARCHAR(100) UNIQUE NOT NULL,
+    value TEXT,
+    description VARCHAR(255),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Files (centralised attachment metadata — replaces raw /uploads/ static paths)
+CREATE TABLE IF NOT EXISTS files (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    report_id     INTEGER REFERENCES laporan(id) ON DELETE CASCADE,
+    original_name VARCHAR(255) NOT NULL,
+    stored_name   VARCHAR(255) NOT NULL UNIQUE,
+    detected_mime_type VARCHAR(100) NOT NULL,
+    size_bytes    BIGINT NOT NULL CHECK (size_bytes > 0),
+    sha256        CHAR(64) NOT NULL,
+    storage_key   VARCHAR(500) NOT NULL,
+    created_at    TIMESTAMP NOT NULL DEFAULT NOW(),
+    deleted_at    TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_files_owner   ON files(owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_files_report  ON files(report_id);
+CREATE INDEX IF NOT EXISTS idx_files_deleted ON files(deleted_at) WHERE deleted_at IS NULL;
 
 -- Period/Laporan Period (reporting periods)
 CREATE TABLE IF NOT EXISTS periode_laporan (

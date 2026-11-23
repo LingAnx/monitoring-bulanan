@@ -185,8 +185,8 @@ function renderPendingApprovals(reports) {
         <br><span class="status-badge-simple status-diteruskan">Menunggu Persetujuan</span>
       </div>
       <div class="pending-actions">
-        <button type="button" class="btn btn-sm btn-outline" onclick="viewReportDetail(${r.id})">Lihat</button>
-        <button type="button" class="btn btn-sm btn-primary" onclick="showApproveModal(${r.id})">Tinjau Laporan →</button>
+        <button type="button" class="btn btn-sm btn-outline" data-click-action="viewReportDetail" data-action-arg="${r.id}">Lihat</button>
+        <button type="button" class="btn btn-sm btn-primary" data-click-action="showApproveModal" data-action-arg="${r.id}">Tinjau Laporan →</button>
       </div>
     </div>
   `).join('') + '<div class="load-more"><a href="/head-office/persetujuan.html?tab=pending">Lihat Semua Laporan Menunggu →</a></div>';
@@ -236,7 +236,7 @@ function renderSectionMonitoring(sections) {
     const statusText = pct === 100 ? 'Lengkap' : pct >= 80 ? 'Hampir Lengkap' : 'Perlu Ditingkatkan';
 
     return `
-      <div class="section-progress-item" onclick="viewSectionDetail(${s.id})" tabindex="0">
+      <div class="section-progress-item" data-click-action="viewSectionDetail" data-action-arg="${s.id}" tabindex="0">
         <div class="section-progress-header">
           <span class="section-progress-name">${escapeHtml(s.nama_seksi)}</span>
           <span class="section-progress-count">${submitted}/${total} • ${pct}%</span>
@@ -311,7 +311,7 @@ function renderApprovalHistory(approvals) {
       <td>${formatMonthYear(a.bulan, a.tahun)}</td>
       <td>${formatDate(a.created_at)}</td>
       <td><span class="${a.status === 'disetujui' ? statusBadgeClass('disetujui') : statusBadgeClass('revisi_kantor')}">${a.status === 'disetujui' ? 'Disetujui' : 'Revisi'}</span></td>
-      <td><button class="btn btn-sm btn-outline" onclick="viewReportDetail(${a.id_laporan})">Lihat</button></td>
+      <td><button class="btn btn-sm btn-outline" data-click-action="viewReportDetail" data-action-arg="${a.id_laporan}">Lihat</button></td>
     </tr>
   `).join('');
 }
@@ -434,9 +434,9 @@ window.viewReportDetail = async function(id) {
   `;
 
   document.getElementById('modalFooter').innerHTML = canApprove(r.status) ? `
-    <button type="button" class="btn btn-danger" onclick="processApproval(${r.id}, 'revisi_kantor')">Minta Revisi</button>
-    <button type="button" class="btn btn-success" onclick="processApproval(${r.id}, 'disetujui')">Setujui Laporan</button>
-  ` : '<button type="button" class="btn btn-outline" onclick="closeDetailModal()">Tutup</button>';
+    <button type="button" class="btn btn-danger" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg-2="revisi_kantor">Minta Revisi</button>
+    <button type="button" class="btn btn-success" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg-2="disetujui">Setujui Laporan</button>
+  ` : '<button type="button" class="btn btn-outline" data-click-action="closeDetailModal">Tutup</button>';
 
   document.getElementById('detailModal').classList.add('active');
 };
@@ -545,7 +545,7 @@ window.viewSectionDetail = async function(seksiId) {
       </tbody>
     </table>
   `;
-  document.getElementById('modalFooter').innerHTML = '<button type="button" class="btn btn-outline" onclick="closeDetailModal()">Tutup</button>';
+  document.getElementById('modalFooter').innerHTML = '<button type="button" class="btn btn-outline" data-click-action="closeDetailModal">Tutup</button>';
   document.getElementById('detailModal').classList.add('active');
 };
 

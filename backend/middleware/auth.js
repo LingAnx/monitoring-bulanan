@@ -39,17 +39,22 @@ if (!JWT_SECRET ||
 /**
  * signUserToken(user) → string
  * Buat JWT untuk user yang sudah terverifikasi. Dipakai di
- * routes/auth.js (login, change-password, reset-password).
+ * routes/auth.js (login).
  *
  * Payload:
  *   - sub:  user.id (numeric)
  *   - userId:  user.id (compat frontend lama yang baca decoded.userId)
  *   - role:  user.role
+ *   - token_version: revokasi massal
  *   - iat / exp / iss / aud / algorithm:  standar
  */
 function signUserToken(user) {
   return jwt.sign(
-    { userId: user.id, role: user.role },
+    {
+      userId: user.id,
+      role: user.role,
+      token_version: user.token_version ?? 0,
+    },
     JWT_SECRET,
     {
       algorithm: JWT_ALGORITHM,
@@ -61,14 +66,113 @@ function signUserToken(user) {
   );
 }
 
+// ============================================================
+// Token SEMENTARA purpose 'password-change'
+// ------------------------------------------------------------
+// Digunakan HANYA oleh PUT /api/auth/change-password untuk alur
+// must_change_password=true. Sifat:
+//   - audience berbeda dari sesi penuh ('ksop-laporan-pwd-change')
+//     → token ini TIDAK bisa dipakai di endpoint aplikasi lain
+//     (authenticateToken memverifikasi audience 'ksop-laporan-app'
+//      dan menolak token pwd-change, dan sebaliknya).
+//   - expiry 10 menit (override via env PASSWORD_CHANGE_TOKEN_TTL).
+//   - terikat user.id + token_version — begitu password berubah
+//     (token_version +1), token lama otomatis ditolak.
+//   - claim `purpose: 'password-change'` sebagai penanda.
+// ============================================================
+const PWD_CHANGE_AUDIENCE = 'ksop-laporan-pwd-change';
+const PWD_CHANGE_TTL = process.env.PASSWORD_CHANGE_TOKEN_TTL || '10m';
+
+function signPasswordChangeToken(user) {
+  return jwt.sign(
+    {
+      userId: user.id,
+      purpose: 'password-change',
+      token_version: user.token_version ?? 0,
+    },
+    JWT_SECRET,
+    {
+      algorithm: JWT_ALGORITHM,
+      expiresIn: PWD_CHANGE_TTL,
+      issuer: JWT_ISSUER,
+      audience: PWD_CHANGE_AUDIENCE,
+      subject: String(user.id),
+    }
+  );
+}
+
+/**
+ * verifyPasswordChangeToken(token) →
+ *   { ok: true, userId, token_version } | { ok: false, reason }
+ * Dikembalikan sebagai result object (bukan throw) agar route
+ * bisa memetakan alasan penolakan ke pesan 401 yang aman.
+ */
+function verifyPasswordChangeToken(token) {
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET, {
+      algorithms: [JWT_ALGORITHM],
+      issuer: JWT_ISSUER,
+      audience: PWD_CHANGE_AUDIENCE,
+    });
+  } catch (e) {
+    if (e.name === 'TokenExpiredError') {
+      return { ok: false, reason: 'Token sementara sudah kedaluwarsa — silakan login ulang' };
+    }
+    return { ok: false, reason: 'Token tidak valid atau telah kedaluwarsa' };
+  }
+  if (decoded.purpose !== 'password-change') {
+    return { ok: false, reason: 'Token tidak valid' };
+  }
+  const userId = Number(decoded.sub ?? decoded.userId);
+  if (!userId || Number.isNaN(userId)) {
+    return { ok: false, reason: 'Token tidak valid' };
+  }
+  return { ok: true, userId, token_version: decoded.token_version };
+}
+
+/**
+ * verifyAppToken(token) →
+ *   { ok: true, userId, token_version, role, decoded } |
+ *   { ok: false, reason }
+ *
+ * PURE — tidak menyentuh req/res/next. Tidak mengirim respons.
+ * Return object eksplisit; caller memutuskan status code.
+ * Dipakai oleh:
+ *   - authenticateToken (Express middleware)
+ *   - authenticateChangePassword di routes/auth.js
+ */
+function verifyAppToken(token) {
+  if (!token) {
+    return { ok: false, reason: 'Token tidak ditemukan' };
+  }
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET, {
+      algorithms: [JWT_ALGORITHM],
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+    });
+  } catch (e) {
+    if (e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
+      return { ok: false, reason: 'Token tidak valid atau telah kedaluwarsa' };
+    }
+    return { ok: false, reason: 'Token tidak valid' };
+  }
+  const userId = Number(decoded.sub ?? decoded.userId);
+  if (!userId || Number.isNaN(userId)) {
+    return { ok: false, reason: 'Token tidak valid' };
+  }
+  return { ok: true, userId, token_version: decoded.token_version, role: decoded.role, decoded };
+}
+
 /**
  * authenticateToken
  *
  * Proses:
  *  1. Extract Bearer dari Authorization header saja — token di
  *     query string DITOLAK (bisa bocor ke referrer/log/proxy).
- *  2. Verifikasi signature, exp, iss, aud, dan bahwa algoritma
- *     yang dipakai token = HS256.
+ *  2. panggil verifyAppToken (pure) — audience app.
  *  3. Cek user di DB + is_active + token_version
  *     (revokasi massal setelah password/role/deactivate).
  *  4. Cek must_change_password → 401 khusus jika flag ON.
@@ -89,29 +193,13 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    if (!token) {
-      return res.status(401).json({ success: false, message: 'Token tidak ditemukan' });
+    // (2) Pure verify — no response side-effects here.
+    const vres = verifyAppToken(token);
+    if (!vres.ok) {
+      return res.status(401).json({ success: false, message: vres.reason });
     }
 
-    // (2) Verifikasi — explicit algorithm, issuer, audience.
-    let decoded;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET, {
-        algorithms: [JWT_ALGORITHM],
-        issuer: JWT_ISSUER,
-        audience: JWT_AUDIENCE,
-      });
-    } catch (e) {
-      if (e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
-        return res.status(401).json({ success: false, message: 'Token tidak valid atau telah kedaluwarsa' });
-      }
-      throw e;
-    }
-
-    const userId = Number(decoded.sub ?? decoded.userId);
-    if (!userId || Number.isNaN(userId)) {
-      return res.status(401).json({ success: false, message: 'Token tidak valid' });
-    }
+    const userId = vres.userId;
 
     // (3) Cek DB: aktif + token_version.
     const userResult = await pool.query(`
@@ -145,15 +233,28 @@ const authenticateToken = async (req, res, next) => {
 
     // (4) Token revocation — jika user baru ganti password / role /
     //     dinonaktifkan, token_version di DB sudah increment, dan
-    //     JWT lama (token_version lama) ditolak.
-    if (decoded.token_version !== undefined && decoded.token_version !== user.token_version) {
+    //     JWT lama (token_version lama) ditolak. Token awal yang
+    //     tidak membawa claim (legacy pre-007) diberi tolansi:
+    //     DB token_version 0 dianggap cocok.
+    const dbVersion = user.token_version || 0;
+    if (vres.token_version === undefined) {
+      if (dbVersion !== 0) {
+        return res.status(401).json({
+          success: false,
+          message: 'Sesi telah dicabut — silakan login ulang'
+        });
+      }
+    } else if (vres.token_version !== dbVersion) {
       return res.status(401).json({
         success: false,
         message: 'Sesi telah dicabut — silakan login ulang'
       });
     }
 
-    // (5) Force password change.
+    // (5) Force password change — HANYA jalur sesi penuh (app
+    // audience) yang ditolak di sini. Bila flag ON, user harus
+    // login ulang dan memakai token SEMENTARA purpose
+    // 'password-change' di PUT /api/auth/change-password.
     if (user.must_change_password === true || user.must_change_password === 't') {
       return res.status(401).json({
         success: false,
@@ -182,6 +283,10 @@ module.exports = {
   authenticateToken,
   requireRole,
   signUserToken,
+  signPasswordChangeToken,
+  verifyAppToken,
+  verifyPasswordChangeToken,
+  PWD_CHANGE_AUDIENCE,
   JWT_SECRET,
   JWT_ISSUER,
   JWT_AUDIENCE,

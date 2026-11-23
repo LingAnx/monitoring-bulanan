@@ -122,6 +122,55 @@ report('isWithinStorageRoot menolak path escape', () => {
   assert.ok(!FS.isWithinStorageRoot(path.resolve(escape)));
 });
 
+// ── F. Kontrak cleanup: storage key vs absolute path ──────
+console.log('\n=== F. Kontrak Cleanup (removeFileSafely vs removeAbsoluteFileSafely) ===');
+
+// Buat file dummy di STORAGE_ROOT/_tmp untuk uji removeAbsoluteFileSafely
+const TMPDIR = path.join(FS.STORAGE_ROOT, '_tmp');
+if (!fs.existsSync(TMPDIR)) fs.mkdirSync(TMPDIR, { recursive: true });
+
+report('removeAbsoluteFileSafely menghapus temp file (absolute path di dalam root)', () => {
+  const absPath = path.join(TMPDIR, 'probe_' + process.pid + '.txt');
+  fs.writeFileSync(absPath, 'cleanup probe');
+  assert.ok(fs.existsSync(absPath), 'file probe harus ada sebelum hapus');
+  const removed = FS.removeAbsoluteFileSafely(absPath);
+  assert.strictEqual(removed, true, 'removeAbsoluteFileSafely harus return true');
+  assert.ok(!fs.existsSync(absPath), 'file seharusnya sudah hilang');
+  // Probe wajib menghasilkan: absolute_cleanup_removed=true
+  console.log('     absolute_cleanup_removed=true');
+});
+
+report('removeAbsoluteFileSafely TIDAK menghapus path di luar STORAGE_ROOT', () => {
+  const outside = path.join(FS.STORAGE_ROOT, '..', '..', '..', 'outside_probe_' + process.pid);
+  const removed = FS.removeAbsoluteFileSafely(outside);
+  assert.strictEqual(removed, false, 'path di luar root harus return false');
+});
+
+report('removeFileSafely menghapus file dari storage key', () => {
+  const storedName = FS.makeStoredName('application/pdf');
+  const sKey = FS.storageKey(storedName);
+  const absPath = path.join(FS.STORAGE_ROOT, sKey);
+  if (!fs.existsSync(path.dirname(absPath))) fs.mkdirSync(path.dirname(absPath), { recursive: true });
+  fs.writeFileSync(absPath, '%PDF-1.4 probe');
+  assert.ok(fs.existsSync(absPath), 'file harus ada sebelum hapus');
+  const removed = FS.removeFileSafely(sKey);
+  assert.strictEqual(removed, true, 'removeFileSafely harus return true untuk storage key valid');
+  assert.ok(!fs.existsSync(absPath), 'file seharusnya sudah hilang');
+});
+
+report('removeFileSafely menolak jika di-feed absolute path (kontrak)', () => {
+  const absPath = path.join(TMPDIR, 'should_not_exist_' + process.pid + '.txt');
+  // removeFileSafely menerima storage key; jika di-feed absolute path,
+  // path.resolve(STORAGE_ROOT, absPath) akan menghasilkan path di dalam root
+  // (karena absPath bersifat absolut, resolve-nya tetap absPath), sehingga
+  // isWithinStorageRoot memvalidasi. Ini sebenarnya benar: helper tetap aman.
+  // Namun, behavior yang diharapkan: pemanggil SEHARUSNYA tidak mengirim
+  // absolute path ke removeFileSafely. Kita test bahwa path escape tetap ditolak.
+  const escapePath = path.join(FS.STORAGE_ROOT, '../../etc/passwd');
+  const removed = FS.removeFileSafely(escapePath);
+  assert.strictEqual(removed, false, 'path escape harus ditolak');
+});
+
 // ── Matriks hak akses download (unit, mock query) ────────
 console.log('\n=== C. Matriks Hak Akses Download ===');
 

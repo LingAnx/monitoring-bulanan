@@ -1,27 +1,50 @@
 // ══════════════════════════════════════════════════
-// CHANGE-PASSWORD — force-password-change flow
-// Dipanggil setelah login.js redirect dengan
-// PASSWORD_CHANGE_REQUIRED.
+// CHANGE-PASSWORD — force-password-change flow (v2, 2026-10-26)
 //
-// Alur:
-// 1. User mengisi password baru (min. 8 char, 1 huruf + 1 angka).
-// 2. Kita POST ke /api/auth/reset-password (stateless, tanpa
-//    currentPassword — dipakai khusus untuk reset setelah
-//    first-login / admin-reset).
-//    Catatan: endpoint ini TIDAK verifikasi currentPassword;
-//    dipakai untuk reset flow via token/force-change,
-//    bukan untuk change-password biasa (yang di profile).
-// 3. Setelah sukses, user diarahkan ke login.html untuk
-//    login ulang dengan password baru.
+// Alur (skema NEW, lihat CHANGELOG_FIXES.md):
+// 1. User login dengan flag must_change_password=true.
+//    Respons login membawa `temporaryToken` (expiry 10 menit,
+//    audience 'ksop-laporan-pwd-change', terikat token_version).
+// 2. Frontend mengarahkan ke halaman ini dengan membawa:
+//      - temporaryToken (WAJIB) — dipakai sebagai Authorization Bearer
+//      - currentPassword (password LAMA) — WAJIB divalidasi server
+// 3. PUT /api/auth/change-password
+//      body: { currentPassword, newPassword, confirmNewPassword }
+//      header: Authorization: Bearer <temporaryToken>
+// 4. Server memverifikasi:
+//      - token sementara valid (audience khusus, token_version match,
+//        user masih must_change_password=true, akun aktif)
+//      - password LAMA benar (tidak bisa ganti tanpa tahu lama)
+//      - kebijakan password baru (≥8, min 1 huruf+1 angka, konfirmasi
+//        sama, baru ≠ lama)
+// 5. Berhasil → must_change_password=false, token_version +1
+//    (semua sesi ter-revoke). Frontend menghapus AuthStore,
+//    mengarahkan ke /login.html untuk login ulang.
 //
-// 401/403/500 → tampilkan error, jangan redirect.
+// Jika token kedaluwarsa (10 menit) → user diarahkan ke /login.html.
+// (Catatan: tidak ada lagi endpoint /api/auth/reset-password —
+//  penghapusan jalur tanpa password lama.)
 // ══════════════════════════════════════════════════
 (function () {
   'use strict';
 
   var API_BASE = '';
 
+  // ── Token sementara diambil dari sessionStorage (di-set login.js) ──
+  // TIDAK ADA secret di URL — hindari browser history / Referer / log.
+  var tempToken = '';
+  try { tempToken = sessionStorage.getItem('pwd_change_token') || ''; } catch (e) {}
+  // Hapus token dari storage setelah halaman load (single-use dalam session).
+  // Jika halaman di-refresh, user harus login ulang.
+  if (tempToken) {
+    try { sessionStorage.removeItem('pwd_change_token'); } catch (e) {}
+  }
+
+  // Guard: AuthStore tidak boleh memegang token sesi penuh di sini.
+  try { if (typeof AuthStore !== 'undefined' && AuthStore.clear) AuthStore.clear(); } catch (e) {}
+
   var form = document.getElementById('changePasswordForm');
+  var oldPwInput = document.getElementById('oldPassword');
   var newPw = document.getElementById('newPassword');
   var confirmPw = document.getElementById('confirmNewPassword');
   var errEl = document.getElementById('cpErrorMessage');
@@ -31,17 +54,24 @@
 
   if (!form || !newPw || !confirmPw) return;
 
-  // Guard: kalau user sudah punya token valid, tidak perlu di sini.
-  var _auth = function (name, val) {
-    try {
-      return (typeof AuthStore !== 'undefined' && AuthStore[name]) ? AuthStore[name](val) : undefined;
-    } catch (e) { return undefined; }
-  };
-  if (_auth('isAuthenticated')) {
-    // User already has a session — send to dashboard.
-    window.location.href = '/index.html';
+  // Jika URL tidak membawa token & oldPw, tampilkan pesan kembali login.
+  if (!tempToken) {
+    var msg = document.createElement('p');
+    msg.className = 'sub';
+    msg.textContent = 'Sesi perubahan password sudah berakhir. Silakan login kembali.';
+    form.insertBefore(msg, form.firstChild);
+    var back = document.createElement('button');
+    back.type = 'button';
+    back.className = 'login-btn';
+    back.textContent = 'Kembali ke Login';
+    back.addEventListener('click', function () { window.location.href = '/login.html'; });
+    form.appendChild(back);
     return;
   }
+
+  // Password lama tidak pernah disimpan di storage — user wajib
+  // mengetikkannya ulang di halaman ini.
+  if (oldPwInput) oldPwInput.focus();
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
@@ -50,8 +80,14 @@
 
     var pw = newPw.value;
     var confirm = confirmPw.value;
+    var old = oldPwInput ? oldPwInput.value : '';
 
     // Client-side mirror of server policy.
+    if (old === '') {
+      errEl.textContent = 'Password lama wajib diisi';
+      errEl.className = 'error-message show';
+      return;
+    }
     if (pw.length < 8) {
       errEl.textContent = 'Password baru minimal 8 karakter';
       errEl.className = 'error-message show';
@@ -68,36 +104,49 @@
       return;
     }
 
-    if (btn) { btn.disabled = true; }
+    if (btn) btn.disabled = true;
     if (btnText) btnText.style.display = 'none';
     if (btnLoader) btnLoader.style.display = 'block';
 
     try {
-      var res = await fetch(`${API_BASE}/api/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      var res = await fetch(`${API_BASE}/api/auth/change-password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tempToken}`
+        },
         body: JSON.stringify({
+          currentPassword: old,
           newPassword: pw,
           confirmNewPassword: confirm
         })
       });
-      var data = await res.json();
+      var data = await res.json().catch(function () { return {}; });
 
       if (res.ok && data.success) {
-        // Clear any stale auth state, redirect to login.
-        _auth('clear');
+        // Success — bersihkan state (termasuk token tersisa), arahkan ke login.
+        try { if (typeof AuthStore !== 'undefined' && AuthStore.clear) AuthStore.clear(); } catch (e2) {}
+        try { sessionStorage.removeItem('pwd_change_token'); } catch (e2) {}
         window.location.href = '/login.html';
+        return;
+      }
+
+      // 401 (token tidak valid/kedaluwarsa/versi token tak cocok) → login ulang.
+      if (res.status === 401 || data.code === 'PASSWORD_CHANGE_REQUIRED' ||
+          /kedaluwarsa|tidak berlaku/i.test(data.message || '')) {
+        try { sessionStorage.removeItem('pwd_change_token'); } catch (e2) {}
+        errEl.textContent = 'Sesi perubahan password sudah berakhir. Silakan login kembali.';
+        errEl.className = 'error-message show';
+        setTimeout(function () { window.location.href = '/login.html'; }, 1800);
         return;
       }
 
       errEl.textContent = data.message || 'Gagal mengubah password';
       errEl.className = 'error-message show';
-      if (btn) btn.disabled = false;
-      if (btnText) btnText.style.display = 'block';
-      if (btnLoader) btnLoader.style.display = 'none';
     } catch (err) {
       errEl.textContent = 'Gagal terhubung ke server';
       errEl.className = 'error-message show';
+    } finally {
       if (btn) btn.disabled = false;
       if (btnText) btnText.style.display = 'block';
       if (btnLoader) btnLoader.style.display = 'none';

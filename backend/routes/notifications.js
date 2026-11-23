@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/database');
 const { authenticateToken } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 router.get('/', authenticateToken, async (req, res) => {
   try {
@@ -20,7 +21,7 @@ router.get('/', authenticateToken, async (req, res) => {
       unread: parseInt(totalUnread.rows[0].cnt)
     });
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    logger.error('Error fetching notifications', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat notifikasi' });
   }
 });
@@ -33,7 +34,7 @@ router.post('/read-all', authenticateToken, async (req, res) => {
     );
     res.json({ success: true, message: 'Semua notifikasi dibaca' });
   } catch (error) {
-    console.error('Error marking notifications:', error);
+    logger.error('Error marking notifications', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal menandai notifikasi' });
   }
 });
@@ -50,7 +51,7 @@ router.post('/:id/read', authenticateToken, async (req, res) => {
     }
     res.json({ success: true, message: 'Notifikasi dibaca' });
   } catch (error) {
-    console.error('Error marking notification:', error);
+    logger.error('Error marking notification', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memperbarui notifikasi' });
   }
 });
@@ -67,7 +68,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
     res.json({ success: true, message: 'Notifikasi dihapus' });
   } catch (error) {
-    console.error('Error deleting notification:', error);
+    logger.error('Error deleting notification', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal menghapus notifikasi' });
   }
 });
@@ -81,7 +82,7 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
     );
     res.json({ success: true, data: { count: parseInt(result.rows[0].cnt) } });
   } catch (error) {
-    console.error('Error fetching unread count:', error);
+    logger.error('Error fetching unread count', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat jumlah notifikasi' });
   }
 });

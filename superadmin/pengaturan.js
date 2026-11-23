@@ -29,7 +29,7 @@ async function loadSettings() {
       return;
     }
     container.innerHTML = `
-      <form onsubmit="saveSettings(event)">
+      <form data-submit-action="saveSettings" data-action-event="true">
         ${keys.map(key => {
           const s = settings[key];
           const val = typeof s === 'object' && s !== null ? s.value : s;

@@ -1,35 +1,51 @@
 // ─────────────────────────────────────────────────────────────
 // SECURITY: Script seed untuk environment development.
-// Password di bawah HANYA untuk development dan tidak boleh dipakai di production.
-// Di production, jalankan dengan flag --prod dan set semua env vars SEED_*_PASSWORD.
+//
+// SEMUA password wajib diberikan secara eksplisit via environment
+// variable (SEED_*_PASSWORD) atau CLI argument. Tidak ada default
+// password di source code ini.
+//
+// Usage (env vars — recommended):
+//   SEED_ADMIN_PASSWORD=... SEED_KEPALA_PASSWORD=... \
+//   SEED_ADMIN_TU_PASSWORD=... SEED_ADMIN_LL_PASSWORD=... \
+//   SEED_PEGAWAI_PASSWORD=... \
+//   npm run setup-seed [-- --prod]
+//
+// Usage (CLI args, dev only, in order):
+//   npm run setup-seed -- [adminPw] [kepalaPw] [adminTU_Pw] [adminLL_Pw] [pegawaiPw]
+//
+// Password minimum 12 karakter. Tidak pernah dicetak ke console.
 // ─────────────────────────────────────────────────────────────
 const IS_PROD = process.argv.includes('--prod') || process.env.NODE_ENV === 'production';
 
-function seedPw(envVar, fallback) {
-  const val = process.env[envVar];
-  if (IS_PROD) {
-    if (!val) {
-      console.error(`FATAL: ${envVar} belum diset di mode production.`);
-      process.exit(1);
-    }
-    if (val.length < 12) {
-      console.error(`FATAL: ${envVar} terlalu pendek (< 12 char) di production.`);
-      process.exit(1);
-    }
-    return val;
-  }
+const MIN_PW_LEN = 12;
+
+function fail(msg) {
+  console.error(`[setup-seed] FATAL: ${msg}`);
+  process.exit(1);
+}
+
+// Password priority: env var > CLI arg > fail
+// No fallback / default password in this file.
+function resolvePw(envVar, cliArgIdx, label) {
+  const val = process.env[envVar] || process.argv[cliArgIdx];
   if (!val) {
-    console.log(`⚠️  DEV ONLY: ${envVar} kosong → memakai "${fallback}". Ganti sebelum production.`);
-    return fallback;
+    fail(`${label} wajib diset. Gunakan env var ${envVar} atau CLI arg pos ${cliArgIdx - 2}.`);
+  }
+  if (val.length < MIN_PW_LEN) {
+    fail(`${label} minimal ${MIN_PW_LEN} karakter.`);
   }
   return val;
 }
 
-const ADMIN_PW    = seedPw('SEED_ADMIN_PASSWORD',    'admin123');
-const KEPALA_PW   = seedPw('SEED_KEPALA_PASSWORD',   'kepala123');
-const ADMITU_PW   = seedPw('SEED_ADMIN_TU_PASSWORD', 'adminTU123');
-const ADMINLL_PW  = seedPw('SEED_ADMIN_LL_PASSWORD', 'adminLL123');
-const PEGAWAI_PW  = seedPw('SEED_PEGAWAI_PASSWORD',  'pegawai123');
+const ADMIN_PW   = resolvePw('SEED_ADMIN_PASSWORD',    2, 'SEED_ADMIN_PASSWORD');
+const KEPALA_PW  = resolvePw('SEED_KEPALA_PASSWORD',   3, 'SEED_KEPALA_PASSWORD');
+const ADMITU_PW  = resolvePw('SEED_ADMIN_TU_PASSWORD',  4, 'SEED_ADMIN_TU_PASSWORD');
+const ADMINLL_PW = resolvePw('SEED_ADMIN_LL_PASSWORD',  5, 'SEED_ADMIN_LL_PASSWORD');
+const PEGAWAI_PW = resolvePw('SEED_PEGAWAI_PASSWORD',   6, 'SEED_PEGAWAI_PASSWORD');
+
+const bcrypt = require('bcrypt');
+const pool   = require('../db/database');
 
 async function setupSeed() {
   try {
@@ -47,7 +63,7 @@ async function setupSeed() {
         [nama]
       );
       if (res.rows.length > 0) {
-        console.log('Seksi seeded:', nama);
+        console.log(`[setup-seed] Seksi seeded: ${nama}`);
       }
     }
 
@@ -67,7 +83,8 @@ async function setupSeed() {
          RETURNING id, username, nama, role`,
         [username, hash, nama, nip, idSeksi, role, isActive]
       );
-      console.log(`User: ${res.rows[0].nama} (${res.rows[0].username}) [${res.rows[0].role}]`);
+      // Password NOT logged.
+      console.log(`[setup-seed] User: ${res.rows[0].nama} (${res.rows[0].username}) [${res.rows[0].role}]`);
       return res.rows[0];
     }
 
@@ -114,10 +131,10 @@ async function setupSeed() {
           { tanggal: '2026-08-10', kegiatan: 'Pengumpulan data PNBP', keterangan: 'Selesai' },
           { tanggal: '2026-08-15', kegiatan: 'Rekonsiliasi data', keterangan: 'Proses' }
         ]),
-        capaian: 'Data PNBP bulan Juli telah terkumpul',
+        capaian: 'Data bulan Juli telah terkumpul',
         kendala: 'Beberapa pelabuhan belum melengkapi data',
         tindak_lanjut: 'Mengirim reminder ke pelabuhan yang terlambat',
-        rencana_bulan_depan: 'Penyusunan laporan PNBP Agustus',
+        rencana_bulan_depan: 'Penyusunan laporan bulan berikutnya',
         status: 'diajukan'
       },
       {
@@ -128,6 +145,7 @@ async function setupSeed() {
           { tanggal: '2026-08-05', kegiatan: 'Inspeksi crane Pelabuhan Tanjung Perak', keterangan: 'Baik' }
         ]),
         capaian: 'Inspeksi berjalan lancar',
+        kendala: 'Belum ada',
         tindak_lanjut: 'Follow-up perbaikan crane no. 3',
         rencana_bulan_depan: 'Inspeksi alat fungsional lainnya',
         status: 'draft'
@@ -151,7 +169,7 @@ async function setupSeed() {
           r.status === 'disetujui' ? new Date('2026-08-03') : null
         ]
       );
-      console.log(`Laporan: "${r.judul}" [${r.status}]`);
+      console.log(`[setup-seed] Laporan: "${r.judul}" [${r.status}]`);
     }
 
     // Seed sample notifications
@@ -164,25 +182,14 @@ async function setupSeed() {
       [pegawai.id, kepala.id]
     );
 
-    console.log('\nSeed data setup complete!');
-    if (IS_PROD) {
-      console.log('\n⚠️  PRODUCTION: password di-set via environment variables.');
-      console.log('   Pastikan SEED_ADMIN_PASSWORD, SEED_KEPALA_PASSWORD, dst. sudah benar.');
-      console.log('   Jangan tampilkan password di log.');
-    } else {
-      console.log('\n[DEV ONLY] Login credentials (default dev — ganti di production):');
-      console.log('   Superadmin:       SUPERADMIN       (password via SEED_ADMIN_PASSWORD atau default)');
-      console.log('   Kepala Kantor:    KEPALA_KANTOR    (password via SEED_KEPALA_PASSWORD atau default)');
-      console.log('   Admin Seksi TU:   ADMIN_SEKSI      (password via SEED_ADMIN_TU_PASSWORD atau default)');
-      console.log('   Admin Seksi LL:   ADMIN_SEKSI      (password via SEED_ADMIN_LL_PASSWORD atau default)');
-      console.log('   Pegawai:          PEGAWAI          (password via SEED_PEGAWAI_PASSWORD atau default)');
-      console.log('   ⚠️  Semua default password HANYA untuk development. Ganti di production.');
-    }
+    console.log('\n[setup-seed] Seed data setup complete.');
+    console.log(`[setup-seed] Mode: ${IS_PROD ? 'PRODUCTION' : 'DEVELOPMENT'}`);
+    console.log(`[setup-seed] Users seeded: SUPERADMIN, KEPALA_KANTOR, ADMIN_SEKSI (TU), ADMIN_SEKSI (LL), PEGAWAI`);
+    console.log(`[setup-seed] Password: (tidak ditampilkan — set via env/CLI sebelum eksekusi)`);
 
     process.exit(0);
   } catch (error) {
-    console.error('Error setting up seed data:', error.message);
-    console.error(error.stack);
+    console.error('[setup-seed] Error setting up seed data:', error.message);
     process.exit(1);
   }
 }

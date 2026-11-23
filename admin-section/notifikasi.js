@@ -21,6 +21,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   initAdminSectionPage('Notifikasi');
+
+  // Tombol "Tandai Semua Dibaca" — listener langsung
+  document.getElementById('markAllReadBtn')?.addEventListener('click', markAllRead);
+
+  // Tombol "Refresh" — listener langsung, tanpa inline onclick
+  document.getElementById('refreshNotifBtn')?.addEventListener('click', loadNotifications);
+
   await loadNotifications();
   startPolling();
 });

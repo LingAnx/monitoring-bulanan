@@ -12,49 +12,51 @@
   <link rel="stylesheet" href="/head-office-layout.css">
 </head>
 <body>
-  <div class="layout admin-section-layout" id="layout">
-    <!-- Sidebar (managed by admin-section-layout.js) -->
+  <div class="headoffice-layout" id="layout">
+    <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-icon">★</div>
+          <div class="logo-icon"><span class="icon icon-star" aria-hidden="true"></span></div>
           <div class="logo-text">
             <span class="logo-title">KSOP</span>
             <span class="logo-subtitle">Cirebon</span>
           </div>
         </div>
-        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">☰</button>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="sidebar"><span class="icon icon-menu" aria-hidden="true"></span></button>
       </div>
       <nav class="sidebar-nav" id="sidebarNav"></nav>
       <div class="sidebar-footer"></div>
     </aside>
-<!-- Main Area -->
-<div class="main-area" id="mainArea">
 
-  <!-- Topbar managed by employee-layout.js -->
-  <header class="topbar" id="topbar"></header>
+    <!-- Main Area -->
+    <div class="headoffice-content" id="mainArea">
+      <!-- Topbar (managed by head-office-layout.js) -->
+      <header class="topbar" id="topbar"></header>
 
-  <main class="main-content">
-    <div id="profileContent" class="profile-card">
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <p>Memuat profil...</p>
-      </div>
-    </div>
-  </main>
+      <!-- Content -->
+      <main class="admin-content">
+        <div id="profileContent" class="profile-card">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Memuat profil...</p>
+          </div>
+        </div>
+      </main>
+    </div><!-- /headoffice-content -->
 
-</div>
-
-<!-- Sidebar Overlay -->
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-</div>
+    <!-- Sidebar Overlay (di dalam root .headoffice-layout agar CSS
+         ter-scoped .headoffice-layout .sidebar-overlay menjangkau) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  </div><!-- /headoffice-layout -->
 
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/layout-shared.js"></script>
   <script src="/js/navigation/head-office-navigation.js?v=2"></script>
   <script src="/js/layouts/head-office-layout.js?v=2"></script>
-  <script src="/app.js"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/translations.js"></script>
   <script src="/head-office/_layout.js"></script>
   <script src="/head-office/profil.js?v=3"></script>

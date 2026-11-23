@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 const VALID_STATUSES = [
   'draft',
@@ -60,29 +61,75 @@ router.get('/dashboard', authenticateToken, requireRole('KEPALA_KANTOR'), async 
     // Office info
     const office = { id: 'office_01', name: 'KSOP Cirebon' };
 
-    // Active period
-    const activePeriod = {
-      id: `period_${currentYear}_${String(currentMonth).padStart(2, '0')}`,
-      name: `Agustus ${currentYear}`,
-      startDate: `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`,
-      deadline: `${currentYear}-${String(currentMonth).padStart(2, '0')}-31`,
-      isActive: true
-    };
+    // Active period: read canonical period from periode_laporan table.
+    // The periode_laporan table is the authoritative source for all
+    // period metadata (bulan, tahun, tanggal_mulai, deadline, status).
+    const BULAN_NAMES = ['Januari','Februari','Maret','April','Mei','Juni',
+                         'Juli','Agustus','September','Oktober','November','Desember'];
+    let activePeriod = null;
+    try {
+      // 1. Find the active period row from the DB.
+      const periodRes = await pool.query(
+        `SELECT id, bulan, tahun, tanggal_mulai, deadline, status
+         FROM periode_laporan
+         WHERE status = 'aktif'
+         ORDER BY tahun DESC, bulan DESC
+         LIMIT 1`
+      );
+      if (periodRes.rows.length > 0) {
+        const p = periodRes.rows[0];
+        activePeriod = {
+          id: p.id,
+          bulan: p.bulan,
+          tahun: p.tahun,
+          name: `${BULAN_NAMES[p.bulan - 1] || p.bulan} ${p.tahun}`,
+          startDate: p.tanggal_mulai,
+          deadline: p.deadline,
+          status: p.status,
+          isActive: p.status === 'aktif'
+        };
+      }
+    } catch (periodErr) {
+      // periode_laporan table may not exist yet — fall through to fallback
+      activePeriod = null;
+    }
 
-    // Summary counts for current period
+    // Fallback: no active period row found in DB.
+    // Use the current calendar month with computed last-day deadline
+    // (NOT hardcoded 31 — avoids invalid dates like Feb 31, Apr 31, etc.)
+    if (!activePeriod) {
+      const lastDay = new Date(currentYear, currentMonth, 0).getDate();
+      activePeriod = {
+        id: null,
+        bulan: currentMonth,
+        tahun: currentYear,
+        name: `${BULAN_NAMES[currentMonth - 1]} ${currentYear}`,
+        startDate: `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`,
+        deadline: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+        status: 'aktif',
+        isActive: true,
+        isFallback: true // explicit flag so frontend can show a warning
+      };
+    }
+
+    // Use the resolved period (from DB or fallback) for all subsequent queries
+    const periodMonth = activePeriod.bulan;
+    const periodYear  = activePeriod.tahun;
+
+    // Summary counts for active period
     const totalPegawai = await pool.query("SELECT COUNT(*) as cnt FROM users WHERE role = 'PEGAWAI'");
-    const totalLaporan = await pool.query('SELECT COUNT(*) as cnt FROM laporan WHERE bulan = $1 AND tahun = $2', [currentMonth, currentYear]);
-    const pendingApproval = await pool.query("SELECT COUNT(*) as cnt FROM laporan WHERE status = 'diteruskan' AND bulan = $1 AND tahun = $2", [currentMonth, currentYear]);
-    const approved = await pool.query("SELECT COUNT(*) as cnt FROM laporan WHERE status = 'disetujui' AND bulan = $1 AND tahun = $2", [currentMonth, currentYear]);
-    const revision = await pool.query("SELECT COUNT(*) as cnt FROM laporan WHERE status = 'revisi_kantor' AND bulan = $1 AND tahun = $2", [currentMonth, currentYear]);
+    const totalLaporan = await pool.query('SELECT COUNT(*) as cnt FROM laporan WHERE bulan = $1 AND tahun = $2', [periodMonth, periodYear]);
+    const pendingApproval = await pool.query("SELECT COUNT(*) as cnt FROM laporan WHERE status = 'diteruskan' AND bulan = $1 AND tahun = $2", [periodMonth, periodYear]);
+    const approved = await pool.query("SELECT COUNT(*) as cnt FROM laporan WHERE status = 'disetujui' AND bulan = $1 AND tahun = $2", [periodMonth, periodYear]);
+    const revision = await pool.query("SELECT COUNT(*) as cnt FROM laporan WHERE status = 'revisi_kantor' AND bulan = $1 AND tahun = $2", [periodMonth, periodYear]);
     const notSubmitted = await pool.query(
       `SELECT COUNT(*) as cnt FROM users u
        LEFT JOIN laporan l ON u.id = l.id_user AND l.bulan = $1 AND l.tahun = $2 AND l.status != 'draft'
        WHERE u.role = 'PEGAWAI' AND l.id IS NULL`,
-      [currentMonth, currentYear]
+      [periodMonth, periodYear]
     );
-    const pendingVerification = await pool.query("SELECT COUNT(*) as cnt FROM laporan WHERE status = 'diajukan' AND bulan = $1 AND tahun = $2", [currentMonth, currentYear]);
-    const draftCount = await pool.query("SELECT COUNT(*) as cnt FROM laporan WHERE status = 'draft' AND bulan = $1 AND tahun = $2", [currentMonth, currentYear]);
+    const pendingVerification = await pool.query("SELECT COUNT(*) as cnt FROM laporan WHERE status = 'diajukan' AND bulan = $1 AND tahun = $2", [periodMonth, periodYear]);
+    const draftCount = await pool.query("SELECT COUNT(*) as cnt FROM laporan WHERE status = 'draft' AND bulan = $1 AND tahun = $2", [periodMonth, periodYear]);
 
     // Office progress
     const totalEmp = parseInt(totalPegawai.rows[0].cnt);
@@ -102,7 +149,7 @@ router.get('/dashboard', authenticateToken, requireRole('KEPALA_KANTOR'), async 
       WHERE l.status = 'diteruskan' AND l.bulan = $1 AND l.tahun = $2
       ORDER BY COALESCE(v.created_at, l.created_at) ASC
       LIMIT 5
-    `, [currentMonth, currentYear]);
+    `, [periodMonth, periodYear]);
 
     // Section progress
     const sections = await pool.query(`
@@ -118,14 +165,14 @@ router.get('/dashboard', authenticateToken, requireRole('KEPALA_KANTOR'), async 
       LEFT JOIN laporan l ON u.id = l.id_user AND l.bulan = $1 AND l.tahun = $2
       GROUP BY s.id, s.nama_seksi
       ORDER BY s.id
-    `, [currentMonth, currentYear]);
+    `, [periodMonth, periodYear]);
 
     // Status distribution for chart
     const allStatus = await pool.query(`
       SELECT status, COUNT(*) as count FROM laporan
       WHERE bulan = $1 AND tahun = $2
       GROUP BY status
-    `, [currentMonth, currentYear]);
+    `, [periodMonth, periodYear]);
     const statusDist = {};
     allStatus.rows.forEach(r => { statusDist[r.status] = parseInt(r.count); });
 
@@ -163,7 +210,7 @@ router.get('/dashboard', authenticateToken, requireRole('KEPALA_KANTOR'), async 
       JOIN verifikasi v ON v.id_laporan = l.id
       WHERE l.status = 'diteruskan' AND l.bulan = $1 AND l.tahun = $2
         AND v.created_at < NOW() - INTERVAL '2 days'
-    `, [currentMonth, currentYear]);
+    `, [periodMonth, periodYear]);
     const over2DaysCount = parseInt(over2Days.rows[0].cnt);
 
     // Notifications
@@ -184,8 +231,8 @@ router.get('/dashboard', authenticateToken, requireRole('KEPALA_KANTOR'), async 
         summary: {
           totalPegawai: totalEmp,
           totalReports: parseInt(totalLaporan.rows[0].cnt),
-          pendingApproval,
-          approved,
+          pendingApproval: parseInt(pendingApproval.rows[0].cnt),
+          approved: parseInt(approved.rows[0].cnt),
           revision: parseInt(revision.rows[0].cnt),
           notSubmitted: parseInt(notSubmitted.rows[0].cnt)
         },
@@ -220,7 +267,7 @@ router.get('/dashboard', authenticateToken, requireRole('KEPALA_KANTOR'), async 
       }
     });
   } catch (error) {
-    console.error('Error fetching head-office dashboard:', error);
+    logger.error('Error fetching head-office dashboard', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat dashboard' });
   }
 });
@@ -277,7 +324,7 @@ router.get('/reports', authenticateToken, requireRole('KEPALA_KANTOR'), async (r
     const result = await pool.query(query, params);
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching reports:', error.message);
+    logger.error('Error fetching reports', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat laporan' });
   }
 });
@@ -313,7 +360,7 @@ router.get('/reports/pending', authenticateToken, requireRole('KEPALA_KANTOR'), 
 
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching pending reports:', error);
+    logger.error('Error fetching pending reports', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat laporan menunggu' });
   }
 });
@@ -347,7 +394,7 @@ router.get('/reports/approved', authenticateToken, requireRole('KEPALA_KANTOR'),
 
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching approved reports:', error);
+    logger.error('Error fetching approved reports', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat laporan disetujui' });
   }
 });
@@ -381,7 +428,7 @@ router.get('/reports/revision', authenticateToken, requireRole('KEPALA_KANTOR'),
 
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching revision reports:', error);
+    logger.error('Error fetching revision reports', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat laporan revisi' });
   }
 });
@@ -459,13 +506,20 @@ router.post('/reports/:id/approve', authenticateToken, requireRole('KEPALA_KANTO
       await pool.query(
         "INSERT INTO notifications (id_user, title, message, type) VALUES ($1, $2, $3, $4)",
         [laporanUser.rows[0].id, 'Status Laporan Diperbarui', notifMsg, notifType]
-      ).catch((err) => console.error('Failed to insert notification:', err.message));
+      ).catch((err) => logger.error('Failed to insert notification', { error: err.message }));
     }
 
     res.json({ success: true, data: updateResult.rows[0] });
   } catch (error) {
-    try { await client.query('ROLLBACK'); } catch {}
-    console.error('Error approving report:', error.message);
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      logger.error('Rollback gagal — kepala.approve', {
+        requestId: req.requestId,
+        error: (rollbackErr && rollbackErr.message) ? String(rollbackErr.message).slice(0, 200) : 'unknown',
+      });
+    }
+    logger.error('Error approving report', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memproses persetujuan' });
   } finally {
     client.release();
@@ -506,7 +560,7 @@ router.get('/sections', authenticateToken, requireRole('KEPALA_KANTOR'), async (
 
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching sections:', error);
+    logger.error('Error fetching sections', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat data seksi' });
   }
 });
@@ -549,7 +603,7 @@ router.get('/sections/:id', authenticateToken, requireRole('KEPALA_KANTOR'), asy
 
     res.json({ success: true, data: { section: sek.rows[0], pegawai: pegawai.rows } });
   } catch (error) {
-    console.error('Error fetching section detail:', error);
+    logger.error('Error fetching section detail', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat detail seksi' });
   }
 });
@@ -601,7 +655,7 @@ router.get('/history', authenticateToken, requireRole('KEPALA_KANTOR'), async (r
     const result = await pool.query(query, params);
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching history:', error);
+    logger.error('Error fetching history', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat riwayat' });
   }
 });
@@ -652,7 +706,7 @@ router.get('/archive', authenticateToken, requireRole('KEPALA_KANTOR'), async (r
     const result = await pool.query(query, params);
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching archive:', error);
+    logger.error('Error fetching archive', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat arsip' });
   }
 });

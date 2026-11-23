@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Backend API untuk Sistem Pelaporan Kinerja Bulanan KSOP Kelas II Cirebon",
   "main": "server.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
@@ -15,9 +18,16 @@
     "test:ooxml": "node tests/test-ooxml-structure.js",
     "test:health": "node tests/test-health-metrics.js",
     "test:csv": "node tests/test-csv-injection.js",
+    "test:storage": "node tests/test-object-storage.js",
+    "test:storage-routes": "node tests/test-object-storage-routes.js",
     "test:e2e-auth": "bash tests/test-auth-workflow-e2e.sh",
     "test:setup-admin": "node scripts/setup-admin.js",
-    "test:setup-seed": "node scripts/setup-seed.js"
+    "test:setup-seed": "node scripts/setup-seed.js",
+    "db:migrate": "node scripts/migrate.js",
+    "db:migrate:status": "node scripts/migrate.js list",
+    "db:migrate:reset": "CONFIRM_RESET=yes node scripts/migrate.js reset",
+    "test:verify-helpers": "node tests/test-verify-helpers.js",
+    "test:password": "bash tests/test-password-flow.sh"
   },
   "keywords": [
     "ksop",
@@ -27,6 +37,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1175.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

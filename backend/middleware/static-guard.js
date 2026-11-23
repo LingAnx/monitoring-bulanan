@@ -91,8 +91,8 @@ function staticGuard(req, res, next) {
 }
 
 /**
- * Middleware cache header — letakkan setelah express.static
- * tetapi sebelum 404 handler.
+ * Middleware cache header — letakkan sebelum express.static agar header
+ * ikut terkirim ketika static handler langsung menyelesaikan response.
  */
 function cacheHeaders(req, res, next) {
   const ext = path.extname(req.path).toLowerCase();
@@ -101,8 +101,11 @@ function cacheHeaders(req, res, next) {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-  } else if (['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.woff', '.woff2'].includes(ext)) {
-    // Cache aset statis 1 jam (versioning via query string ?v=N sudah ada di HTML)
+  } else if (['.js', '.css'].includes(ext)) {
+    // Banyak halaman masih memakai URL aset tanpa hash; selalu revalidate agar
+    // perbaikan frontend diterima segera setelah deploy.
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  } else if (['.png', '.jpg', '.jpeg', '.gif', '.svg', '.woff', '.woff2'].includes(ext)) {
     res.setHeader('Cache-Control', 'public, max-age=3600');
   } else if (req.path.startsWith('/api/') || req.path.startsWith('/health') || req.path.startsWith('/metrics')) {
     res.setHeader('Cache-Control', 'no-store');

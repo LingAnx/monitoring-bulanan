@@ -24,16 +24,29 @@ async function loadBackups() {
         <thead><tr><th>Nama File</th><th>Ukuran</th><th>Dibuat</th><th>Aksi</th></tr></thead>
         <tbody>
           ${backups.map(b => `
-            <tr>
-              <td style="font-family:monospace;font-size:0.8rem">${b.filename}</td>
+            <tr data-backup-filename="${encodeURIComponent(b.filename)}">
+              <td style="font-family:monospace;font-size:0.8rem">${escapeHtmlText(b.filename)}</td>
               <td>${formatSize(b.size)}</td>
               <td>${formatDateTime(b.created_at)}</td>
-              <td><button class="btn btn-sm btn-outline" onclick="downloadBackup('${b.filename}')">Download</button></td>
+              <td><button class="btn btn-sm btn-outline act-dl-backup">Download</button></td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     `;
+
+    // Event delegation for backup download.
+    // FIX: dataset.backupFilename adalah string URL-encoded dari encodeURIComponent.
+    // Konversi eksplisit + validasi: filename valid adalah string singkat dengan
+    // karakter [a-zA-Z0-9._-] saja. Jika tidak valid, jangan jalankan apa-apa.
+    const isValidBackupName = (s) =>
+      typeof s === 'string' && s.length > 0 && s.length <= 100 && /^[a-zA-Z0-9._-]+$/.test(s);
+    container.querySelectorAll('[data-backup-filename]').forEach(el => {
+      const fname = decodeURIComponent(el.dataset.backupFilename || '');
+      if (!isValidBackupName(fname)) return;
+      const btn = el.querySelector('.act-dl-backup');
+      if (btn) btn.addEventListener('click', () => downloadBackup(fname));
+    });
   } catch (err) {
     container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><div class="empty-state-text">Gagal memuat daftar backup.</div></div>';
   }

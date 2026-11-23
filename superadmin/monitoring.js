@@ -41,14 +41,14 @@ async function loadMonitoring() {
       ${sections.map(sec => `
         <div class="card" style="margin-bottom:16px">
           <div class="card-header">
-            <h3 class="card-title">${sec.nama_seksi} — ${sec.sudah_lapor}/${sec.total_pegawai} sudah lapor</h3>
-            <span class="badge ${sec.belum_lapor > 0 ? 'revision' : 'approved'}">${sec.belum_lapor} belum</span>
+            <h3 class="card-title">${escapeHtmlText(sec.nama_seksi)} — ${sec.sudah_lapor}/${sec.total_pegawai} sudah lapor</h3>
+            <span class="${sec.belum_lapor > 0 ? statusBadgeClass('revisi_admin') : statusBadgeClass('diteruskan')}">${sec.belum_lapor} belum</span>
           </div>
           ${sec.belum_lapor > 0 ? `
             <div style="padding:0 4px">
               <div style="font-size:0.82rem;font-weight:600;color:var(--danger);margin-bottom:8px">Belum Mengajukan:</div>
               <div style="display:flex;flex-wrap:wrap;gap:6px">
-                ${sec.belum.map(p => `<span style="background:var(--gray-100);padding:4px 10px;border-radius:6px;font-size:0.8rem;color:var(--gray-700)">${p.nama} (${p.nip || '-'})</span>`).join('')}
+                ${sec.belum.map(p => `<span style="background:var(--gray-100);padding:4px 10px;border-radius:6px;font-size:0.8rem;color:var(--gray-700)">${escapeHtmlText(p.nama)} (${escapeHtmlText(p.nip || '-')})</span>`).join('')}
               </div>
             </div>
           ` : '<div style="padding:8px 4px;color:var(--success);font-size:0.9rem">&#10003; Semua pegawai sudah melaporkan</div>'}

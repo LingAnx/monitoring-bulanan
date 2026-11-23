@@ -147,12 +147,15 @@ async function loadDashboardData() {
           <td>${getStatusBadge(r.status)}</td>
           <td>${formatDate(r.created_at)}</td>
           <td>
-            <button type="button" class="btn btn-sm btn-primary" onclick="viewDetail(${r.id})">👁️</button>
-            ${r.status === 'diajukan' ? `<button type="button" class="btn btn-sm btn-success" onclick="verifyReport(${r.id})"><span class="icon icon-check"></span></button>` : ''}
+            <button type="button" class="btn btn-sm btn-primary" data-action="view-detail" data-report-id="${r.id}" aria-label="Lihat detail laporan" title="Lihat detail laporan"><span class="icon icon-search" aria-hidden="true"></span></button>
+            ${r.status === 'diajukan' ? `<button type="button" class="btn btn-sm btn-success" data-action="verify-report" data-report-id="${r.id}" aria-label="Verifikasi laporan" title="Verifikasi laporan"><span class="icon icon-check" aria-hidden="true"></span></button>` : ''}
           </td>
         </tr>
       `).join('');
     }
+
+    // Pasang event delegation hanya sekali (safe terhadap render ulang)
+    setupRecentReportActions();
 
     // Activity Timeline
     const timeline = document.getElementById('activityTimeline');
@@ -207,34 +210,84 @@ function renderNotifications(container, notifications) {
 }
 
 function viewDetail(id) {
-  apiFetch(`/api/laporan/${id}`)
-    .then(res => {
-      if (res.success) showDetailModal(res.data);
-    })
-    .catch(err => alert('Gagal memuat detail'));
+  // ID sudah divalidasi sebagai integer positif oleh setupRecentReportActions
+  const safeId = String(Number(id));
+  window.location.href = `/admin-section/laporan.html?id=${encodeURIComponent(safeId)}`;
 }
 
-function verifyReport(id) {
-  apiFetch(`/api/laporan/${id}/verify`, {
-    method: 'POST',
-    body: JSON.stringify({
-      status: 'diverifikasi'
-    })
-  })
-    .then(res => {
-      if (res.success) {
-        showSuccess('Laporan berhasil diverifikasi!');
-        loadDashboardData();
-      } else {
-        showError(
-          res.message || 'Gagal memverifikasi laporan'
-        );
-      }
-    })
-    .catch(err => {
-      console.error('Verification error:', err);
-      showError('Terjadi kesalahan saat memverifikasi laporan');
+// ── Event delegation untuk tombol aksi tabel "Laporan Terbaru" ────────
+// Dipasang hanya SEKALI pada #recentTableBody. Render ulang tabel
+// (polling 60s) tidak menggandakan listener karena guard
+// dataset.actionsBound.
+function setupRecentReportActions() {
+  const tbody = document.getElementById('recentTableBody');
+  if (!tbody || tbody.dataset.actionsBound === 'true') return;
+
+  tbody.dataset.actionsBound = 'true';
+
+  tbody.addEventListener('click', event => {
+    const button = event.target.closest('[data-action]');
+    if (!button || !tbody.contains(button)) return;
+
+    const id = Number.parseInt(button.dataset.reportId, 10);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      showError('ID laporan tidak valid');
+      return;
+    }
+
+    if (button.dataset.action === 'view-detail') {
+      viewDetail(id);
+      return;
+    }
+
+    if (button.dataset.action === 'verify-report') {
+      verifyReport(id, button);
+    }
+  });
+}
+
+async function verifyReport(id, button) {
+  // Cegah double-click / request ganda:
+  // - atribut data-pending hanya bisa di-set lewat dataset API
+  // - disabled dipulihkan di finally agar tombol hidup lagi saat gagal
+  if (button) {
+    if (button.dataset.pending === 'true') return;
+    button.dataset.pending = 'true';
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<span class="icon" aria-hidden="true"></span> <span class="loading-spinner-inline" aria-hidden="true"></span>';
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+  }
+
+  try {
+    const res = await apiFetch(`/api/laporan/${id}/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'diverifikasi' })
     });
+
+    if (res.success) {
+      showSuccess('Laporan berhasil diverifikasi!');
+      await loadDashboardData();
+    } else {
+      showError(res.message || 'Gagal memverifikasi laporan');
+    }
+  } catch (err) {
+    console.error('Verification error:', err);
+    showError('Terjadi kesalahan saat memverifikasi laporan');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      button.dataset.pending = '';
+      // Tabel mungkin sudah di-render ulang (loadDashboardData sukses) —
+      // hanya pulihkan markup jika tombol masih ada di DOM dan masih pending
+      if (button.isConnected && button.dataset.pending === '') {
+        button.innerHTML = originalHtml;
+      }
+    }
+  }
 }
 
 function showSkeleton(show) {

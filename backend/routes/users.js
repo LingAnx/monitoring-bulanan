@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const pool = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 const VALID_ROLES = ['PEGAWAI', 'ADMIN_SEKSI', 'KEPALA_KANTOR', 'SUPERADMIN'];
 
@@ -26,7 +27,7 @@ router.get('/', authenticateToken, requireRole('SUPERADMIN'), async (req, res) =
     `);
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching users:', error);
+    logger.error('Error fetching users', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat daftar pengguna' });
   }
 });
@@ -58,7 +59,7 @@ router.post('/', authenticateToken, requireRole('SUPERADMIN'), async (req, res) 
     );
     res.status(201).json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('Error creating user:', error);
+    logger.error('Error creating user', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal membuat pengguna' });
   }
 });
@@ -95,7 +96,7 @@ router.put('/:id', authenticateToken, requireRole('SUPERADMIN'), async (req, res
     );
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('Error updating user:', error);
+    logger.error('Error updating user', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memperbarui pengguna' });
   }
 });
@@ -127,7 +128,7 @@ router.patch('/:id/toggle-status', authenticateToken, requireRole('SUPERADMIN'),
     );
     res.json({ success: true, data: result.rows[0], message: newActive ? 'Akun diaktifkan' : 'Akun dinonaktifkan' });
   } catch (error) {
-    console.error('Error toggling user status:', error);
+    logger.error('Error toggling user status', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal mengubah status pengguna' });
   }
 });
@@ -157,7 +158,7 @@ router.post('/:id/reset-password', authenticateToken, requireRole('SUPERADMIN'),
     );
     res.json({ success: true, message: 'Password berhasil direset' });
   } catch (error) {
-    console.error('Error resetting password:', error);
+    logger.error('Error resetting password', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal mereset password' });
   }
 });
@@ -201,7 +202,7 @@ router.delete('/:id', authenticateToken, requireRole('SUPERADMIN'), async (req, 
     );
     res.json({ success: true, message: 'Pengguna dihapus' });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    logger.error('Error deleting user', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal menghapus pengguna' });
   }
 });

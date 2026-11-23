@@ -16,13 +16,13 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-icon">★</div>
+          <div class="logo-icon"><span class="icon icon-star" aria-hidden="true"></span></div>
           <div class="logo-text">
             <span class="logo-title">KSOP</span>
             <span class="logo-subtitle">Cirebon</span>
           </div>
         </div>
-        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">☰</button>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
       </div>
       <nav class="sidebar-nav" id="sidebarNav"></nav>
       <div class="sidebar-footer"></div>
@@ -75,42 +75,42 @@
 
           <!-- Stats Grid -->
           <div class="stats-grid-modern" id="statsGrid">
-            <div class="stat-card-modern stat-pending" onclick="window.location.href='/admin-section/laporan.html'">
-              <div class="stat-icon">⏳</div>
+            <a class="stat-card-modern stat-pending" href="/admin-section/laporan.html">
+              <div class="stat-icon"><span class="icon icon-hourglass" aria-hidden="true"></span></div>
               <div class="stat-info">
                 <div class="stat-value" id="statPending">0</div>
                 <div class="stat-label">Menunggu Persetujuan</div>
                 <div class="stat-desc">Laporan menunggu</div>
               </div>
-              <span class="stat-arrow">→</span>
-            </div>
-            <div class="stat-card-modern stat-revisi" onclick="window.location.href='/admin-section/laporan.html'">
-              <div class="stat-icon">🔄</div>
+              <span class="stat-arrow" aria-hidden="true">→</span>
+            </a>
+            <a class="stat-card-modern stat-revisi" href="/admin-section/laporan.html?status=revisi_admin">
+              <div class="stat-icon"><span class="icon icon-repeat" aria-hidden="true"></span></div>
               <div class="stat-info">
                 <div class="stat-value" id="statRevisi">0</div>
                 <div class="stat-label">Revisi Admin</div>
                 <div class="stat-desc">Butuh perbaikan</div>
               </div>
-              <span class="stat-arrow">→</span>
-            </div>
-            <div class="stat-card-modern stat-approved" onclick="window.location.href='/admin-section/laporan.html?status=disetujui'">
-              <div class="stat-icon">✅</div>
+              <span class="stat-arrow" aria-hidden="true">→</span>
+            </a>
+            <a class="stat-card-modern stat-approved" href="/admin-section/laporan.html?status=disetujui">
+              <div class="stat-icon"><span class="icon icon-check" aria-hidden="true"></span></div>
               <div class="stat-info">
                 <div class="stat-value" id="statDisetujui">0</div>
                 <div class="stat-label">Disetujui</div>
                 <div class="stat-desc">Selesai diproses</div>
               </div>
-              <span class="stat-arrow">→</span>
-            </div>
-            <div class="stat-card-modern stat-pegawai">
-              <div class="stat-icon">👥</div>
+              <span class="stat-arrow" aria-hidden="true">→</span>
+            </a>
+            <a class="stat-card-modern stat-pegawai" href="/admin-section/pegawai.html">
+              <div class="stat-icon"><span class="icon icon-users" aria-hidden="true"></span></div>
               <div class="stat-info">
                 <div class="stat-value" id="statPegawai">0</div>
                 <div class="stat-label">Total Pegawai</div>
                 <div class="stat-desc">Di seksi Anda</div>
               </div>
-              <span class="stat-arrow">→</span>
-            </div>
+              <span class="stat-arrow" aria-hidden="true">→</span>
+            </a>
           </div>
 
           <!-- Dashboard Grid -->
@@ -181,20 +181,20 @@
                   <h3 class="card-title">Aksi Cepat</h3>
                 </div>
                 <div class="quick-actions-grid">
-                  <a href="/admin-section/laporan.html" class="qa-item">
-                    <div class="qa-icon blue">📋</div>
+                  <a href="/admin-section/laporan.html" class="qa-item" title="Buka halaman persetujuan laporan">
+                    <div class="qa-icon blue"><span class="icon icon-clipboard" aria-hidden="true"></span></div>
                     <span>Persetujuan</span>
                   </a>
-                  <a href="/admin-section/laporan.html?status=disetujui" class="qa-item">
-                    <div class="qa-icon green">✅</div>
+                  <a href="/admin-section/laporan.html?status=disetujui" class="qa-item" title="Lihat laporan yang sudah selesai">
+                    <div class="qa-icon green"><span class="icon icon-check" aria-hidden="true"></span></div>
                     <span>Laporan Selesai</span>
                   </a>
-                  <a href="/admin-section/laporan.html?status=revisi_admin" class="qa-item">
-                    <div class="qa-icon red">🔄</div>
+                  <a href="/admin-section/laporan.html?status=revisi_admin" class="qa-item" title="Lihat laporan yang butuh revisi">
+                    <div class="qa-icon red"><span class="icon icon-repeat" aria-hidden="true"></span></div>
                     <span>Revisi Admin</span>
                   </a>
-                  <a href="/admin-section/notifikasi.html" class="qa-item">
-                    <div class="qa-icon orange">🔔</div>
+                  <a href="/admin-section/notifikasi.html" class="qa-item" title="Buka notifikasi">
+                    <div class="qa-icon orange"><span class="icon icon-bell" aria-hidden="true"></span></div>
                     <span>Notifikasi</span>
                   </a>
                 </div>
@@ -225,7 +225,7 @@
 
           <!-- Revision Alert (hidden by default) -->
           <div class="revision-alert-card hidden" id="revisionAlert">
-            <div class="revision-alert-icon">⚠️</div>
+            <div class="revision-alert-icon"><span class="icon icon-warning" aria-hidden="true"></span></div>
             <div class="revision-alert-content">
               <div class="revision-alert-title">Laporan Butuh Revisi</div>
               <div class="revision-alert-text" id="revisionAlertText">Ada laporan yang perlu ditindaklanjuti.</div>
@@ -233,7 +233,7 @@
                 <span id="revisionCount">0</span> laporan perlu revisi
               </div>
             </div>
-            <button type="button" class="btn-sm btn-danger" onclick="window.location.href='/admin-section/laporan.html'">Kelola Sekarang</button>
+            <a class="btn btn-sm btn-danger" href="/admin-section/laporan.html?status=revisi_admin">Kelola Sekarang</a>
           </div>
         </div>
       </main>
@@ -245,12 +245,13 @@
 
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/layout-shared.js"></script>
   <script src="/js/navigation/admin-section-navigation.js?v=2"></script>
   <script src="/js/layouts/admin-section-layout.js?v=2"></script>
-  <script src="/app.js"></script>
-  <script src="/translations.js"></script>
   <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
+  <script src="/translations.js"></script>
   <script src="/admin-section/_layout.js"></script>
-  <script src="/admin-section/dashboard.js?v=5"></script>
+  <script src="/admin-section/dashboard.js?v=6"></script>
 </body>
 </html>

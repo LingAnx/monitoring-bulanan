@@ -28,8 +28,10 @@
   align-items: center;
   justify-content: center;
   padding: 0 4px;
-  display: none;
 }
+/* Badge ditampilkan/disenyapkan HANYA lewat class .hidden — tidak ada
+   display:none permanen di sini. */
+.notif-badge.hidden { display: none !important; }
 
 .notif-actions {
   display: flex;

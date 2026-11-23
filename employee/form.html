@@ -16,13 +16,13 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-icon">★</div>
+          <div class="logo-icon"><span class="icon icon-star" aria-hidden="true"></span></div>
           <div class="logo-text">
             <span class="logo-title">KSOP Kelas II</span>
             <span class="logo-subtitle">Cirebon</span>
           </div>
         </div>
-        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">☰</button>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
       </div>
       <nav class="sidebar-nav" id="sidebarNav"></nav>
       <div class="sidebar-footer"></div>
@@ -75,7 +75,7 @@
             </thead>
             <tbody id="activityBody"></tbody>
           </table>
-          <button type="button" class="btn btn-outline btn-sm mt-2" onclick="addActivityRow()">+ Tambah Kegiatan</button>
+          <button type="button" class="btn btn-outline btn-sm mt-2" data-click-action="addActivityRow">+ Tambah Kegiatan</button>
 
           <h3 class="section-title mt-4">C. Capaian / Pekerjaan Utama</h3>
           <div class="form-group">
@@ -101,12 +101,12 @@
           <div class="form-group">
             <input type="hidden" id="lampiranData" value="[]">
             <label for="lampiranInput" class="lampiran-file-label">Pilih File Lampiran</label>
-            <input type="file" id="lampiranInput" multiple accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx" onchange="handleLampiranChange(event)" title="Pilih lampiran" aria-label="Pilih lampiran">
+            <input type="file" id="lampiranInput" multiple accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx" data-change-action="handleLampiranChange" data-action-event="true" title="Pilih lampiran" aria-label="Pilih lampiran">
             <div id="lampiranPreview"></div>
           </div>
 
           <div class="form-actions">
-            <button type="button" class="btn btn-outline" onclick="saveDraft()">Simpan Draft</button>
+            <button type="button" class="btn btn-outline" data-click-action="saveDraft">Simpan Draft</button>
             <button type="submit" class="btn btn-primary">Ajukan Laporan</button>
           </div>
         </form>
@@ -121,9 +121,11 @@
 
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/layout-shared.js"></script>
   <script src="/js/navigation/employee-navigation.js?v=2"></script>
   <script src="/js/layouts/employee-layout.js?v=2"></script>
-  <script src="/app.js"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/translations.js"></script>
   <script src="/employee/_layout.js"></script>
   <script src="/employee/form.js?v=6"></script>

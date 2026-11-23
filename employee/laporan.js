@@ -125,9 +125,9 @@ function renderLaporan(reports) {
             <td>${escapeHtmlText(r.judul)}</td>
             <td>${getStatusLabel(r.status)}</td>
             <td>
-              <button type="button" class="btn btn-sm btn-primary" onclick="showDetail(${r.id})"><span class="icon icon-search"></span> Detail</button>
-              ${canEdit(r.status) ? `<button type="button" class="btn btn-sm btn-warning" onclick="editLaporan(${r.id})"><span class="icon icon-edit"></span> Edit</button>` : ''}
-              ${r.status === 'draft' ? `<button type="button" class="btn btn-sm btn-danger" onclick="deleteLaporan(${r.id})"><span class="icon icon-trash"></span></button>` : ''}
+              <button type="button" class="btn btn-sm btn-primary" data-click-action="showDetail" data-action-arg="${r.id}"><span class="icon icon-search"></span> Detail</button>
+              ${canEdit(r.status) ? `<button type="button" class="btn btn-sm btn-warning" data-click-action="editLaporan" data-action-arg="${r.id}"><span class="icon icon-edit"></span> Edit</button>` : ''}
+              ${r.status === 'draft' ? `<button type="button" class="btn btn-sm btn-danger" data-click-action="deleteLaporan" data-action-arg="${r.id}"><span class="icon icon-trash"></span></button>` : ''}
             </td>
           </tr>
         `).join('')}
@@ -149,17 +149,17 @@ function renderPagination(pagination) {
   }
 
   let html = `<div class="pagination-info">Menampilkan ${totalItems} data - Halaman ${cp}/${totalPages}</div><div class="pagination-buttons">`;
-  html += `<button type="button" class="btn btn-sm ${cp === 1 ? 'disabled' : ''}" ${cp === 1 ? 'disabled' : ''} onclick="changePage(${cp - 1})">Prev</button>`;
+  html += `<button type="button" class="btn btn-sm ${cp === 1 ? 'disabled' : ''}" ${cp === 1 ? 'disabled' : ''} data-click-action="changePage" data-action-arg="${cp - 1}">Prev</button>`;
 
   for (let i = 1; i <= totalPages; i++) {
     if (i === 1 || i === totalPages || (i >= cp - 1 && i <= cp + 1)) {
-      html += `<button type="button" class="btn btn-sm ${i === cp ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+      html += `<button type="button" class="btn btn-sm ${i === cp ? 'active' : ''}" data-click-action="changePage" data-action-arg="${i}">${i}</button>`;
     } else if (i === cp - 2 || i === cp + 2) {
       html += `<span>...</span>`;
     }
   }
 
-  html += `<button type="button" class="btn btn-sm ${cp === totalPages ? 'disabled' : ''}" ${cp === totalPages ? 'disabled' : ''} onclick="changePage(${cp + 1})">Next</button>`;
+  html += `<button type="button" class="btn btn-sm ${cp === totalPages ? 'disabled' : ''}" ${cp === totalPages ? 'disabled' : ''} data-click-action="changePage" data-action-arg="${cp + 1}">Next</button>`;
   html += `</div>`;
   container.innerHTML = html;
 }

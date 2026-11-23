@@ -277,6 +277,18 @@
 }
 .mobile-menu-btn:hover { background: var(--gray-100); }
 
+/* Kepala Kantor (head-office): hamburger terlihat mulai 1024px, bukan 768px.
+   Scope ketat ke .headoffice-layout agar tidak memengaruhi role lain
+   (employee & admin-seksi tetap 768px sesuai aturan global di atas). */
+.headoffice-layout .mobile-menu-btn { display: none; }
+@media (max-width: 1024px) {
+  .headoffice-layout .mobile-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 .page-title { font-size: 1.1rem; font-weight: 700; color: var(--gray-900); margin: 0; }
 
 /* =====================================================
@@ -285,8 +297,10 @@
 
 .topbar-title-wrap {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .topbar-page-title {
@@ -295,7 +309,10 @@
   font-weight: 700;
   color: var(--gray-900);
   line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .topbar-right {
@@ -304,7 +321,7 @@
   justify-content: flex-end;
   gap: 14px;
   margin-left: auto;
-  min-width: 0;
+  flex-shrink: 0;
   height: 100%;
 }
 
@@ -483,6 +500,11 @@
     align-items: center;
     justify-content: center;
   }
+
+  /* Sembunyikan period badge bertahap — hamburger, notifikasi, avatar TIDAK
+     boleh disembunyikan. */
+  .period-badge { display: none; }
+  .profile-name { display: none; }
 }
 
 /* ── Content ─────────────────────────────────────── */
@@ -745,7 +767,10 @@
   border-top: 1px solid var(--gray-200);
 }
 
-/* ── Sidebar Overlay ─────────────────────────────── */
+/* ── Sidebar Overlay (employee/admin, generic) ───────
+   Kepala Kantor memakai .headoffice-layout .sidebar-overlay (z-index 150,
+   ter-scoped di head-office-layout.css). Rule ini dikecualikan dari
+   context headoffice agar HO tidak bergantung pada selector generik ini. */
 .sidebar-overlay {
   display: none;
   position: fixed;
@@ -753,7 +778,13 @@
   background: rgba(0,0,0,0.4);
   z-index: 199;
 }
+.headoffice-layout .sidebar-overlay {
+  /* biarkan aturan ter-scoped di head-office-layout.css berlaku */
+  z-index: 150;
+  background: rgba(0,0,0,0.5);
+}
 .sidebar-overlay.active { display: block; }
+.headoffice-layout .sidebar-overlay.active { display: block; }
 
 /* ── Responsive ──────────────────────────────────── */
 @media (max-width: 1024px) {

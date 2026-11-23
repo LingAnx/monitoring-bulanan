@@ -66,14 +66,14 @@ function renderNotifItem(n) {
   const timeStr = formatRelativeTime(n.created_at);
   const icon = ICON_MAP[n.type] || '<span class="icon icon-info"></span>';
   return `
-    <li class="notif-item ${n.is_read ? '' : 'unread'}" onclick="markRead(${n.id})">
+    <li class="notif-item ${n.is_read ? '' : 'unread'}" data-click-action="markRead" data-action-arg="${n.id}">
       <div class="notif-icon notif-icon-${n.type || 'info'}">${icon}</div>
       <div class="notif-body">
         <div class="notif-title">${escapeHtml(n.title)}</div>
         <div class="notif-message">${escapeHtml(n.message)}</div>
       </div>
       <span class="notif-time">${timeStr}</span>
-      <button type="button" class="notif-delete" onclick="event.stopPropagation();deleteNotif(${n.id})" title="Hapus">&times;</button>
+      <button type="button" class="notif-delete" data-click-action="deleteNotif" data-action-arg="${n.id}" data-stop-propagation="true" title="Hapus">&times;</button>
     </li>
   `;
 }

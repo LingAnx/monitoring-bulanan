@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../db/database');
 const { toCSV } = require('../lib/csv');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 // ── CSV Helpers ──────────────────────────────────────────────────────────
 // escapeCsvCell: formula-injection safe (CSV injection / Excel injection).
@@ -65,7 +66,7 @@ router.get('/csv/users', authenticateToken, requireRole('SUPERADMIN'), async (re
     res.setHeader('Content-Disposition', 'attachment; filename="users.csv"');
     res.send(csv);
   } catch (error) {
-    console.error('Error exporting users CSV:', error);
+    logger.error('Error exporting users CSV', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal mengekspor pengguna' });
   }
 });
@@ -96,7 +97,7 @@ router.get('/csv/reports', authenticateToken, requireRole('SUPERADMIN'), async (
     res.setHeader('Content-Disposition', 'attachment; filename="laporan.csv"');
     res.send(csv);
   } catch (error) {
-    console.error('Error exporting reports CSV:', error);
+    logger.error('Error exporting reports CSV', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal mengekspor laporan' });
   }
 });

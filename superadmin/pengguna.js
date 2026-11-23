@@ -52,21 +52,21 @@ async function loadUsers() {
         </thead>
         <tbody>
           ${users.map(u => `
-            <tr>
+            <tr data-user-id="${u.id}" data-active="${u.is_active ? '1' : '0'}">
               <td>${escapeHtml(u.nama)}</td>
               <td>${escapeHtml(u.username)}</td>
-              <td>${u.nip || '-'}</td>
-              <td><span class="badge badge-${getBadgeClass(u.role)}">${u.role}</span></td>
-              <td>${u.nama_seksi || '-'}</td>
+              <td>${escapeHtmlText(u.nip || '-' )}</td>
+              <td><span class="${statusBadgeClass(getBadgeClass(u.role))}">${escapeHtmlText(u.role)}</span></td>
+              <td>${escapeHtmlText(u.nama_seksi || '-' )}</td>
               <td>${u.is_active ? '<span style="color:var(--success)">Aktif</span>' : '<span style="color:var(--danger)">Nonaktif</span>'}</td>
               <td>
-                <button class="btn btn-sm btn-outline" onclick="editUser(${u.id})">Edit</button>
+                <button class="btn btn-sm btn-outline act-edit">Edit</button>
                 ${u.id !== currentUser.id ? `
-                  <button class="btn btn-sm ${u.is_active ? 'btn-warning' : 'btn-success'}" onclick="toggleUser(${u.id}, ${u.is_active})">
+                  <button class="btn btn-sm ${u.is_active ? 'btn-warning' : 'btn-success'} act-toggle">
                     ${u.is_active ? 'Nonaktifkan' : 'Aktifkan'}
                   </button>
-                  <button class="btn btn-sm btn-outline" onclick="showResetModal(${u.id},'${escapeHtml(u.username)}')">Reset PW</button>
-                  <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id},'${escapeHtml(u.nama)}')">Hapus</button>
+                  <button class="btn btn-sm btn-outline act-resetpw">Reset PW</button>
+                  <button class="btn btn-sm btn-danger act-delete">Hapus</button>
                 ` : ''}
               </td>
             </tr>
@@ -74,6 +74,31 @@ async function loadUsers() {
         </tbody>
       </table>
     `;
+
+    // Event delegation — replace inline onclick handlers with
+    // data-* attributes and a single delegated listener on the
+    // container. This avoids CSP 'unsafe-inline' violations and
+    // prevents XSS via unescaped user data in handler arguments.
+    container.addEventListener('click', (e) => {
+      const row = e.target.closest('tr[data-user-id]');
+      if (!row) return;
+      // FIX: dataset.userId adalah string DOM — konversi eksplisit ke Number.
+      // Jika konversi gagal (NaN), jangan jalankan action apa pun.
+      const userId = Number(row.dataset.userId);
+      if (!Number.isInteger(userId) || userId <= 0) return;
+      const active = row.dataset.active === '1';
+      if (e.target.classList.contains('act-edit')) {
+        editUser(userId);
+      } else if (e.target.classList.contains('act-toggle')) {
+        toggleUser(userId, active);
+      } else if (e.target.classList.contains('act-resetpw')) {
+        const user = users.find(x => x.id === userId);
+        showResetModal(userId, user ? user.username : '');
+      } else if (e.target.classList.contains('act-delete')) {
+        const user = users.find(x => x.id === userId);
+        deleteUser(userId, user ? user.nama : '');
+      }
+    });
   } catch (err) {
     container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><div class="empty-state-text">Gagal memuat data.</div></div>';
   }

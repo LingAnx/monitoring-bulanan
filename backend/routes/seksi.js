@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 // GET /api/seksi - List all seksi
 router.get('/', authenticateToken, async (req, res) => {
@@ -9,7 +10,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const result = await pool.query('SELECT * FROM seksi ORDER BY id');
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching seksi:', error);
+    logger.error('Error fetching seksi', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat data seksi' });
   }
 });
@@ -31,7 +32,7 @@ router.post('/', authenticateToken, requireRole('SUPERADMIN'), async (req, res) 
     );
     res.status(201).json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('Error creating seksi:', error);
+    logger.error('Error creating seksi', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal membuat seksi' });
   }
 });
@@ -57,7 +58,7 @@ router.put('/:id', authenticateToken, requireRole('SUPERADMIN'), async (req, res
     );
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('Error updating seksi:', error);
+    logger.error('Error updating seksi', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memperbarui seksi' });
   }
 });
@@ -84,7 +85,7 @@ router.delete('/:id', authenticateToken, requireRole('SUPERADMIN'), async (req, 
     );
     res.json({ success: true, message: 'Seksi berhasil dihapus' });
   } catch (error) {
-    console.error('Error deleting seksi:', error);
+    logger.error('Error deleting seksi', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal menghapus seksi' });
   }
 });

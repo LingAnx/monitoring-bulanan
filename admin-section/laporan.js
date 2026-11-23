@@ -34,6 +34,9 @@ if (initialStatus && statusFilter) {
 
 await loadNotifications();
 
+// Pasang listener sebelum kemungkinan masuk langsung ke detail melalui ?id=.
+setupLaporanActions();
+
 if (laporanId) {
   // Validasi id: harus angka, hindari query path aneh ke API
   if (!/^\d+$/.test(laporanId)) {
@@ -55,7 +58,107 @@ await loadLaporan();
     currentPage = 1;
     loadLaporan();
   });
+
 });
+
+// ── Delegasi tombol aksi halaman Laporan ────────────────────────────
+function setupLaporanActions() {
+  document.addEventListener('click', event => {
+    const btn = event.target.closest('[data-action]');
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+
+    if (action === 'back-to-list') {
+      window.location.href = '/admin-section/laporan.html';
+      return;
+    }
+
+    if (action === 'export-pdf') {
+      window.print();
+      return;
+    }
+
+    if (action === 'export-csv') {
+      exportCSV();
+      return;
+    }
+
+    // Aksi berbasis laporan
+    const id = Number.parseInt(btn.dataset.reportId, 10);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      alert('ID laporan tidak valid');
+      return;
+    }
+
+    if (action === 'view-detail') {
+      viewLaporanDetail(id);
+      return;
+    }
+
+    if (action === 'verify-report') {
+      verifyLaporanAction(id, btn, 'approve');
+      return;
+    }
+
+    if (action === 'revise-report') {
+      verifyLaporanAction(id, btn, 'revisi');
+    }
+  });
+
+}
+
+// Tampilkan detail laporan (navigasi, tanpa replace state)
+function viewLaporanDetail(id) {
+  window.location.href = `/admin-section/laporan.html?id=${encodeURIComponent(String(id))}`;
+}
+
+// Eksekusi aksi verifikasi/revisi dengan guard double-click
+async function verifyLaporanAction(id, btn, action) {
+  if (btn) {
+    if (btn.dataset.pending === 'true') return;
+    btn.dataset.pending = 'true';
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+  }
+
+  try {
+    const catatan =
+      action === 'revisi'
+        ? prompt('Alasan revisi:')
+        : '';
+
+    if (action === 'revisi' && catatan === null) {
+      return; // user cancel prompt
+    }
+
+    const res = await apiFetch(`/api/laporan/${id}/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: action === 'revisi' ? 'revisi_admin' : 'diverifikasi',
+        catatan: catatan || null
+      })
+    });
+
+    if (res.success) {
+      alert(action === 'revisi' ? 'Laporan diminta revisi' : 'Laporan diverifikasi');
+      loadLaporan();
+    } else {
+      alert('Gagal: ' + (res.message || ''));
+    }
+  } catch (err) {
+    console.error('Verify error:', err);
+    alert('Gagal memverifikasi laporan');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+      delete btn.dataset.pending;
+    }
+  }
+}
 
 async function loadNotifications() {
   try {
@@ -159,10 +262,10 @@ function renderLaporan(reports) {
             <td>${escapeHtmlText(r.judul)}</td>
             <td>${getStatusLabel(r.status)}</td>
             <td>
-              <button type="button" class="btn btn-sm btn-primary" onclick="showDetail(${r.id})"><span class="icon icon-search"></span> Detail</button>
+              <button type="button" class="btn btn-sm btn-primary" data-action="view-detail" data-report-id="${r.id}" aria-label="Lihat detail laporan" title="Lihat detail laporan"><span class="icon icon-search" aria-hidden="true"></span></button>
               ${canVerify(r.status) ? `
-                <button type="button" class="btn btn-sm btn-success" onclick="verifyLaporan(${r.id}, 'approve')"><span class="icon icon-check"></span> Verifikasi</button>
-                <button type="button" class="btn btn-sm btn-danger" onclick="verifyLaporan(${r.id}, 'revisi')"><span class="icon icon-edit"></span> Revisi</button>
+                <button type="button" class="btn btn-sm btn-success" data-action="verify-report" data-report-id="${r.id}" aria-label="Verifikasi laporan" title="Verifikasi laporan"><span class="icon icon-check" aria-hidden="true"></span></button>
+                <button type="button" class="btn btn-sm btn-danger" data-action="revise-report" data-report-id="${r.id}" aria-label="Minta revisi laporan" title="Minta revisi laporan"><span class="icon icon-edit" aria-hidden="true"></span></button>
               ` : ''}
             </td>
           </tr>
@@ -185,17 +288,17 @@ function renderPagination(pagination) {
   }
 
   let html = `<div class="pagination-info">Menampilkan ${totalItems} data - Halaman ${cp}/${totalPages}</div><div class="pagination-buttons">`;
-  html += `<button type="button" class="btn btn-sm ${cp === 1 ? 'disabled' : ''}" ${cp === 1 ? 'disabled' : ''} onclick="changePage(${cp - 1})">Prev</button>`;
+  html += `<button type="button" class="btn btn-sm ${cp === 1 ? 'disabled' : ''}" ${cp === 1 ? 'disabled' : ''} data-click-action="changePage" data-action-arg="${cp - 1}">Prev</button>`;
 
   for (let i = 1; i <= totalPages; i++) {
     if (i === 1 || i === totalPages || (i >= cp - 1 && i <= cp + 1)) {
-      html += `<button type="button" class="btn btn-sm ${i === cp ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+      html += `<button type="button" class="btn btn-sm ${i === cp ? 'active' : ''}" data-click-action="changePage" data-action-arg="${i}">${i}</button>`;
     } else if (i === cp - 2 || i === cp + 2) {
       html += `<span>...</span>`;
     }
   }
 
-  html += `<button type="button" class="btn btn-sm ${cp === totalPages ? 'disabled' : ''}" ${cp === totalPages ? 'disabled' : ''} onclick="changePage(${cp + 1})">Next</button>`;
+  html += `<button type="button" class="btn btn-sm ${cp === totalPages ? 'disabled' : ''}" ${cp === totalPages ? 'disabled' : ''} data-click-action="changePage" data-action-arg="${cp + 1}">Next</button>`;
   html += `</div>`;
   container.innerHTML = html;
 }
@@ -268,13 +371,12 @@ async function loadLaporanDetail(id) {
           <button
             type="button"
             class="btn btn-outline"
-            onclick="window.location.href='/admin-section/laporan.html'">
+            data-action="back-to-list">
             ← Kembali
           </button>
         </div>
 
         <div class="detail-grid">
-
           <div class="detail-item">
             <strong>Judul</strong>
             <p>${escapeHtmlDetail(laporan.judul || '-')}</p>
@@ -310,7 +412,6 @@ async function loadLaporanDetail(id) {
               `
               : ''
           }
-
         </div>
 
       </div>
@@ -326,7 +427,7 @@ async function loadLaporanDetail(id) {
         <button
           type="button"
           class="btn btn-outline"
-          onclick="window.location.href='/admin-section/laporan.html'">
+          data-action="back-to-list">
           ← Kembali
         </button>
       </div>
@@ -342,8 +443,10 @@ function escapeHtmlDetail(value) {
   return div.innerHTML;
 }
 
+// Fungsi legacy — dipertahankan hanya sebagai fallback; UI sudah
+// memakai data-action="view-detail" yang memicu viewLaporanDetail().
 function showDetail(id) {
-  window.location.href = `/admin-section/laporan.html?id=${id}`;
+  viewLaporanDetail(id);
 }
 
 function formatDate(dateStr) {

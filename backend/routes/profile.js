@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const pool = require('../db/database');
 const { authenticateToken } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 router.put('/', authenticateToken, async (req, res) => {
   try {
@@ -88,7 +89,7 @@ router.put('/', authenticateToken, async (req, res) => {
     );
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('Error updating profile:', error);
+    logger.error('Error updating profile', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memperbarui profil' });
   }
 });
@@ -107,7 +108,7 @@ router.get('/', authenticateToken, async (req, res) => {
     }
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('Error fetching profile:', error);
+    logger.error('Error fetching profile', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat profil' });
   }
 });

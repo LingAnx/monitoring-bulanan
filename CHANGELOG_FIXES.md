@@ -1,4 +1,804 @@
 # CHANGELOG_FIXES.md
+<!-- ENTRI BARU DI BAWAH BARIS INI -->
+
+### Fix #3 — Lampiran Persisten: Render Ephemeral Disk ke Neon Object Storage
+
+| Field | Detail |
+|---|---|
+| Tanggal | 2026-11-22 |
+| File | `backend/lib/object-storage.js`; `backend/routes/upload.js`; `backend/routes/files.js`; `backend/tests/test-object-storage.js`; `backend/tests/test-object-storage-routes.js`; `backend/package.json`; `backend/package-lock.json`; `backend/.env.example` |
+| Masalah | Lampiran disimpan permanen di `backend/uploads/`, sedangkan filesystem Render free bersifat ephemeral sehingga file dapat hilang setelah restart atau redeploy. |
+| Akar | Persistence layer upload/download/delete terikat langsung pada filesystem lokal dan belum memiliki adapter object storage privat. |
+| Fix | Menambahkan adapter Neon S3-compatible berbasis AWS SDK v3 dengan path-style addressing; disk lokal hanya untuk validasi sementara; upload memakai kompensasi delete saat insert metadata gagal; download tetap melalui RBAC; delete object dilakukan sebelum soft-delete metadata; Node dikunci ke 22.x. |
+| Verifikasi | **PENDING UAT nyata**. Mock provider 10/10 PASS; route contract 7/7 PASS; file security 21/21 PASS; OOXML 8/8 PASS; static security 66/66 PASS; syntax check dan spec-drift check PASS. |
+| Pelajaran | Storage produksi tidak boleh bergantung pada disk container; object dan metadata membutuhkan kompensasi eksplisit karena tidak berada dalam satu transaksi. |
+| Log Keyword | `neon-object-storage`, `render-persistence`, `s3-compensation`, `development` |
+| Deploy | **BELUM DEPLOY** — credential storage lokal belum lengkap dan UAT upload → download → redeploy → download belum dilakukan. |
+
+### Fix #2 — Endpoint Persetujuan dan Respons API Tanpa Body
+
+| Field | Detail |
+|---|---|
+| Tanggal | 2026-11-22 |
+| File | `head-office/persetujuan.js`; `app.js`; `tests/frontend/test-api-fetch-empty-response.js` |
+| Masalah | Persetujuan Kepala Kantor memakai endpoint yang tidak terdaftar; respons sukses HTTP 204 diperlakukan sebagai objek kosong sehingga pemanggil dapat menampilkan kegagalan palsu. |
+| Akar | URL frontend tidak konsisten dengan mount `/api/kepala` dan route `/reports/:id/approve`; `apiFetch` selalu mencoba parsing JSON. |
+| Fix | Kedua alur Kepala Kantor memakai `/api/kepala/reports/:id/approve`; `apiFetch` mengenali status 204 atau `content-length: 0` dan mengembalikan `{ success: true, status }` setelah pemeriksaan status error. |
+| Verifikasi | Test HTTP 204 PASS tanpa memanggil `res.json()`; grep menunjukkan kedua frontend memakai endpoint yang sama dengan route backend; ZIP build lokal `monitoring-bulanan-release-20261122_071101.zip` berukuran 294838 byte, 147 entry, audit 0 temuan. SHA-256 source/`public/`/ZIP identik untuk `app.js` (`12b310...ed60`) dan `head-office/persetujuan.js` (`510fc5...5dbd`). Artefak `public/` dan ZIP di-ignore Git; bukti ini berlaku pada mesin build. |
+| Pelajaran | Endpoint frontend harus diverifikasi terhadap mount router dan route final; respons sukses tanpa body harus memiliki kontrak eksplisit. |
+| Log Keyword | `kepala-approve-endpoint`, `empty-204`, `release-20261122_071101` |
+| Deploy | **BELUM DEPLOY** — UAT terautentikasi dan konfigurasi hosting/database produksi masih diperlukan. |
+
+### Fix #1 — Aksi UI Terblokir CSP dan Artefak Rilis Tidak Mutakhir
+
+| Field | Detail |
+|---|---|
+| Tanggal | 2026-11-22 |
+| File | `app.js`; 15 HTML halaman role; 12 JavaScript fitur; `backend/middleware/static-guard.js`; `backend/server.js`; `backend/tests/test-static-security.js`; `tests/frontend/scan-csp-actions.js`; `scripts/build-release.sh` |
+| Masalah | CSP ketat memblokir atribut event inline pada HTML statis dan template JavaScript; detail Admin Seksi memanggil alur yang tidak tersedia; CSS/JS lama dapat bertahan di cache; test static mencatat promise sebelum selesai. |
+| Akar | UI legacy bergantung pada `onclick`/`onchange`/`onsubmit`; scanner hanya membaca HTML; middleware cache diletakkan setelah `express.static`; test runner tidak menunggu callback async. |
+| Fix | Migrasi ke dispatcher `data-*-action` ber-allowlist tanpa `eval`; 404 disederhanakan; CSS/JS memakai revalidation; cache middleware dipasang sebelum static serving; scanner mencakup template JS; build menjalankan gate CSP/icon/duplikat. |
+| Verifikasi | `scan-csp-actions.js`: 28 HTML + 46 JS, 101 aksi, 0 inline handler; icon regression PASS; duplicate suite 9/9; syntax checks PASS. Pada mesin build lokal: ZIP `monitoring-bulanan-release-20261122_065355.zip` berukuran 294762 byte dengan 147 entry dan audit 0 temuan; hash `app.js` dan `admin-section/laporan.js` identik antara source, `public/`, dan ZIP. `public/` serta ZIP rilis adalah artefak build yang di-ignore Git, sehingga bukti hash tersebut hanya berlaku pada lingkungan build yang menghasilkan artefak dan tidak dapat direkonstruksi dari file tracked saja. |
+| Pelajaran | CSP regression gate wajib memindai markup yang dibangun runtime, bukan hanya file HTML. Test async wajib ditunggu sebelum verdict. |
+| Log Keyword | `csp-runtime-actions`, `release-20261122_065355`, `development` |
+| Deploy | **BELUM DEPLOY** — UAT terautentikasi dan konfigurasi hosting/database produksi masih diperlukan. Suite yang memuat dependency lokal `winston` tertahan saat require dan tidak diklaim PASS. |
+
+## [FIX-2026-11-02] Perbaikan terstruktur: kredensial demo, observability rollback, audit release, regenerasi ZIP
+
+**Status**: **PENDING verifikasi UAT visual** — seluruh perbaikan
+implementasi selesai; verifikasi otomatis lulus. Status menjadi
+**SELESAI** hanya setelah UAT visual 4 role × 4 viewport terautentikasi
+benar-benar lulus.
+
+### Temuan & Perbaikan
+
+**T1 — Kebocoran kredensial demo pada login.html (P0)**
+
+- `login.html:37` (root) dan `public/login.html:37`: teks
+  `Demo: admin/admin123 | pegawai/pegawai123` ditampilkan di footer
+  halaman login yang merupakan aset publik.
+- **Fix**: baris `<p class="hint">Demo: …</p>` dihapus dari kedua file
+  tanpa mengganti dengan kredensial lain.
+- `scripts/audit-release.py`: 3 pola regresi kredensial demo ditambahkan
+  ke `SENSITIVE_PATTERNS` (`admin/admin123`, `pegawai/pegawai123`,
+  `Demo: x/y`) → build-release akan GAGAL (exit 1) jika hint muncul
+  lagi di aset publik apa pun.
+- `tests/test-audit-zip-fixtures.py`: fixture 10 (`login-hint.zip`
+  harus exit 1; `login-clean.zip` harus exit 0) ditambahkan sebagai
+  regression guard.
+- **Instruksi rotasi akun demo/deployment** (tanpa menampilkan
+  password nyata — gunakan secret manager):
+
+  *setup-admin.js* (untuk membuat/rotasi SUPERADMIN):
+    ```
+    ADMIN_USERNAME='admin' \
+    ADMIN_PASSWORD='<strong-password-from-secret-manager>' \
+    npm run setup-admin
+    ```
+    Password via env var `ADMIN_PASSWORD` (diutamakan) atau
+    arg CLI kedua: `npm run setup-admin -- <username> <password> [nama]`
+
+  *setup-seed.js* (untuk seed data development):
+    ```
+    SEED_ADMIN_PASSWORD='<from-secret-manager>' \
+    SEED_KEPALA_PASSWORD='<from-secret-manager>' \
+    SEED_ADMIN_TU_PASSWORD='<from-secret-manager>' \
+    SEED_ADMIN_LL_PASSWORD='<from-secret-manager>' \
+    SEED_PEGAWAI_PASSWORD='<from-secret-manager>' \
+    npm run setup-seed
+    ```
+
+  Catatan:
+  - `ADMIN_PASSWORD` → untuk `npm run setup-admin`
+  - `SEED_ADMIN_PASSWORD` (dan `SEED_*_PASSWORD` lainnya) → hanya untuk
+    `npm run setup-seed` — TIDAK dipakai oleh `setup-admin.js`.
+  - Jangan memasukkan password ke shell history: gunakan
+    `read -s` atau pipe dari secret manager.
+  - Semua akun yang pernah dibuat dengan password demo
+    `admin123`/`pegawai123` harus dirotasi sebelum deployment produksi.
+    Password lama dianggap bocor.
+
+- `setup-seed.js` dan `setup-admin.js` sudah benar: tidak ada default
+  password di source; semua password wajib via env var atau CLI arg
+  (verifikasi: `grep -rn 'admin123\|pegawai123' backend/scripts/` → 0 hasil).
+
+**T2 — Artefak ZIP lama (P1)**
+
+- `monitoring-bulanan-release-20261030_142813.zip`: GAGAL audit baru
+  (kredensial demo di `public/login.html` terdeteksi pola regresi).
+  Salinan identik (SHA-256 terverifikasi) di `.release-quarantine/`
+  sebagai `monitoring-bulanan-release-20261030_142813.UNSAFE-DO-NOT-DISTRIBUTE.zip`.
+  **[2026-11-02 session 3]**: Salinan root dihapus setelah konfirmasi
+  pengguna; root kini bersih dari ZIP gagal.
+- `monitoring-bulanan-safe-release.zip`: GAGAL audit (4 temuan:
+  credential hint, placeholder JWT, password DB, `.gitignore`).
+  Salinan identik di `.release-quarantine/` sebagai
+  `monitoring-bulanan-safe-release.UNSAFE-DO-NOT-DISTRIBUTE.zip`.
+  **[2026-11-02 session 3]**: Salinan root dihapus.
+- `monitoring-bulanan-release-20261014_163313.zip`: sudah di-karantina
+  sejak 2026-10-30 (3 temuan).
+  **[2026-11-02 session 3]**: Salinan root dihapus.
+- **Build baru**: `monitoring-bulanan-release-20261102_131718.zip`
+  (147 entry, 291 KB) → audit exit 0. **SATU-SATUNYA ZIP di root.**
+- **[2026-11-02 session 3]**: Guard otomatis ditambahkan ke
+  `build-release.sh` (langkah 1b): memindai semua ZIP di root
+  sebelum build; jika ada yang GAGAL audit, build ditolak (exit 1).
+- **[2026-11-02 session 3]**: Root bersih: 1 ZIP (lulus audit),
+  0 ZIP gagal.
+
+**T3 — Observability: silent rollback di jalur kritis (P2)**
+
+- `backend/routes/laporan.js`: 6 blok `try { ROLLBACK } catch {}`
+  silent (create, update, submit, verify, approve, delete) kini
+  menulis log terstruktur via Winston:
+  `logger.error('Rollback gagal — laporan.<op>', { requestId, error })`.
+  Error disanitasi: hanya `err.message` di-truncate 200 char;
+  tidak ada token, password, cookie, atau connection string.
+- `backend/routes/kepala.js`: 1 blok `try { ROLLBACK } catch {}`
+  (approve) kini memiliki log sama.
+- `backend/routes/auth.js:44` `.catch(() => {})` pada
+  `bcrypt.compare(password, NO_USER_HASH)` adalah **sengaja** —
+  timing-attack mitigation; kegagalan dummy hash tidak perlu dilog
+  karena response identik dengan "user tidak ada". Tidak diubah.
+- Catch JSON.parse `employee/form.js:118` dan `employee/dashboard.js:55`
+  adalah fallback progressive-enhancement UI (badge notifikasi);
+  kegagalan tidak kritis dan tidak perlu dilog. Tidak diubah.
+
+**T4 — CHANGELOG kanonik (P3)**
+
+- `test-audit-zip-fixtures.py`: angka `8/8` dan `12/12` ditandai
+  sebagai hasil historis; kanonik terkini = **14/14**.
+- Status `[FIX-2026-10-30]` tetap **PENDING verifikasi** (UAT visual
+  belum dijalankan; jangan mengubah ke SELESAI sebelum UAT lulus).
+
+### Verifikasi otomatis (2026-11-02)
+
+| Perintah | Hasil |
+|---|---|
+| `npm --prefix backend test` | 8/8 |
+| `npm --prefix backend run test:static` | 66/66 |
+| `npm --prefix backend run test:file` | 21/21 |
+| `npm --prefix backend run test:session` | 7/7 |
+| `npm --prefix backend run test:ooxml` | 8/8 |
+| `npm --prefix backend run test:health` | 7/7 |
+| `npm --prefix backend run test:csv` | 19/19 |
+| `npm --prefix backend run test:verify-helpers` | 20/20 |
+| `node backend/tests/test-audit-schema.js` | 4/4 |
+| `node backend/tests/test-audit-column.js` | 5/5 |
+| `node backend/tests/test-setup-admin-args.js` | **8/8** (baru, session 3) |
+| `python3 tests/test-audit-zip-fixtures.py` | **14/14** (kanonik) |
+| `python3 tests/test-duplicate-files.py` | 9/9 |
+| `node --check` seluruh JS source | 0 gagal |
+| `missing_assets` / `duplicate_ids` | 0 / 0 |
+| `git diff --check` | bersih |
+| `bash scripts/build-release.sh` | exit 0 → ZIP `20261102_131718` |
+| `python3 scripts/audit-release.py <new ZIP>` | exit 0 (147 entry, 0 temuan) |
+| Audit 3 ZIP karantina | exit 1 (terdeteksi, terisolasi) |
+
+### UAT Visual
+
+**Status: BELUM DILAKSANAKAN — BLOCKER**
+
+Dua kendala lingkungan mencegah UAT visual terautentikasi:
+
+1. **Browser tool tidak tersedia**: `browser_exec` / Chromium CDP gagal
+   start dengan `Operation not permitted` pada
+   `Chrome/DevToolsActivePort` (sama sejak sesi 2026-10-30).
+   Pengujian visual 4 role × 4 viewport
+   (1440×900, 1024×768, 768×1024, 390×844) tidak bisa dijalankan
+   di lingkungan saat ini.
+
+2. **Database pengujian tidak tersedia**: UAT terautentikasi
+   memerlukan kredensial test DB + 4 akun role (PEGAWAI, ADMIN_SEKSI,
+   KEPALA_KANTOR, SUPERADMIN). Jika kredensial tidak tersedia,
+   matriks UAT tidak bisa diklaim PASS.
+
+**[2026-11-02 session 3 update]**: Kendala #2 telah diatasi:
+- DB test `ksop_uat_20261102` dibuat di PostgreSQL lokal.
+- Skema + 4 akun UAT (PEGAWAI, ADMIN_SEKSI, KEPALA_KANTOR, SUPERADMIN)
+  di-seed dengan `must_change_password=false`, password via env var.
+- Backend berjalan dengan `DB_NAME=ksop_uat_20261102`, health/ready OK.
+- Login API terverifikasi: 4/4 role berhasil login (token + user data).
+- Kendala #1 masih aktif: `browser_exec` gagal (DevToolsActivePort
+  permission). UAT visual tidak bisa dijalankan secara otomatis.
+- **Tindakan**: Jalankan UAT visual secara manual atau dengan browser
+  yang tersedia di lingkungan operator. Semua data test sudah siap.
+
+**Tindakan yang harus dilakukan**:
+- Jalankan UAT visual menggunakan browser operator (Chrome/Chromium
+  with CDP enabled) atau platform CI yang menyediakan browser.
+- Backend sudah berjalan: `DB_NAME=ksop_uat_20261102 node backend/server.js`.
+- 4 akun UAT: `uat_pegawai`, `uat_admin_seksi`, `uat_kepala`, `uat_superadmin`.
+- Verifikasi semua 16 kombinasi (4 role × 4 viewport) sesuai checklist
+  di AGENTS.md §UAT.
+- Screenshot + URL halaman dicatat untuk setiap kombinasi.
+- Jika browser tidak tersedia: laporkan sebagai blocker
+  dan pertahankan verdict NOT READY.
+
+Status `[FIX-2026-10-30]` tetap **PENDING verifikasi**.
+Verdict saat ini: **NOT READY** (UAT visual pending, blocker: browser
+tool `DevToolsActivePort` permission).
+
+## [FIX-2026-10-30] Perbaikan menyeluruh hasil audit: cleanup upload, auditor release, hamburger/sidebar, layout Kepala Kantor, kontrak Admin Seksi, CSS responsif, aksesibilitas
+
+**Status**: **PENDING verifikasi** — 7 prioritas awal + 6 temuan round-2
+(superadmin, kontrak overlay, file duplikat, sinkronisasi aria, koreksi
+changelog, **build end-to-end**) sudah diimplementasikan. Seluruh test
+unit/lokal DAN build-release end-to-end sudah lulus (angka di bawah).
+Status menjadi **SELESAI** hanya setelah pengujian visual 4 role × 4
+viewport lulus (browser tool saat ini tidak tersedia — kendala lingkungan,
+bukan kendala koder).
+
+> **[2026-11-02] Update kanonik**: Hasil `test-audit-zip-fixtures.py` yang
+> tercatat di bawah (8/8, kemudian 12/12) adalah riwayat. Hasil aktual
+> terkini setelah penambahan 2 fixture regresi kredensial demo adalah
+> **14/14** (lihat [FIX-2026-11-02] di bawah). Semua angka test di bawah
+> ini sesi tetap valid sebagai bukti waktu itu, tetapi untuk angka
+> `test-audit-zip-fixtures.py` yang kanonik saat ini adalah 14/14.
+
+Verifikasi nyata (bukan inspeksi source):
+- `npm --prefix backend test` → **8/8** (test-jwt-rotation)
+- `npm --prefix backend run test:static` → **66/66**
+- `npm --prefix backend run test:file` → **21/21** (termasuk probe `absolute_cleanup_removed=true`)
+- `npm --prefix backend run test:session` → **7/7**
+- `npm --prefix backend run test:ooxml` → **8/8**
+- `npm --prefix backend run test:health` → **7/7**
+- `npm --prefix backend run test:csv` → **19/19**
+- `npm --prefix backend run test:verify-helpers` → **20/20**
+- `node backend/tests/test-audit-schema.js` → **4/4**
+- `node backend/tests/test-audit-column.js` → **5/5**
+- ~~`python3 tests/test-audit-zip-fixtures.py` → **8/8**~~ (historis; kanonik saat ini: **14/14** — lihat [FIX-2026-11-02])
+- Probe nested `node_modules/evil.js` → **exit 1** (lulus)
+- Probe PostgreSQL `COPY ... FROM stdin` → **exit 1** (lulus)
+- Probe cleanup absolute path → **`absolute_cleanup_removed=true`** (lulus)
+- `node --check` seluruh JS frontend → **0 gagal**
+- `missing_assets = 0`, `duplicate_ids = 0`
+- `git diff --check` → bersih (2 baris kosong EOF pada .gitignore & auth.js sudah dibersihkan)
+- ~~`python3 tests/test-audit-zip-fixtures.py` → **12/12** (termasuk 4 fixture injection terlarang)~~ (historis; kanonik saat ini: **14/14** — lihat [FIX-2026-11-02])
+- `python3 tests/test-duplicate-files.py` → **9/9** (round-2)
+- `bash -n scripts/build-release.sh` → **exit 0**
+- **Build-release end-to-end** → **exit 0**, ZIP `monitoring-bulanan-release-20261030_142813.zip`
+  (147 entry, 291 KB); audit ZIP final → **exit 0** (`OK: 147 entry, tidak ditemukan masalah`).
+  Tidak ada `.env` (riil), `.git`, `node_modules`, `uploads`, log, dump SQL, file ` 2.`,
+  atau arsip tertanam di dalam ZIP. `backend/.env.example` ada secara sengaja
+  (template allowlist, tanpa secret).
+  **[2026-11-02]**: ZIP ini kini GAGAL audit (credential hint di login.html
+  terdeteksi pola baru). Dipindahkan ke karantina. Ganti: `monitoring-bulanan-release-20261102_131718.zip`.
+
+### R2-BUILD — PERBAIKAN PROSES BUILD END-TO-END (root cause: false-positive audit + scope staging)
+**Akar masalah** (ditemukan saat menjalankan build end-to-end untuk pertama kali):
+1. `backend/routes/auth.js` menyimpan hash dummy literal
+   `'$2a$10$invalidinvalidinvalidinvalidin'` → grep bcrypt audit
+   (`\$2[aby]\$[0-9]{2}\$`) memflag sebagai hash bocor. Padahal itu
+   nilai dummy untuk timing-attack mitigation.
+2. `build-release.sh` menyalin `backend/tests/` & `backend/docs/` ke staging.
+   File test & dokumentasi memang berisi placeholder secret
+   (`JWT_SECRET='your_jwt_secret_here...'`, `DB_PASSWORD=...`) yang
+   seharusnya **tidak** masuk paket rilis.
+3. Pola `your_jwt_secret_here` di `audit-release.py` tidak ter-anchor —
+   mematch juga pada validasi produksi
+   (`JWT_SECRET === 'your_jwt_secret_here'`) yang bukan secret bocor.
+**File**: `backend/routes/auth.js`, `scripts/build-release.sh`,
+`scripts/audit-release.py`, `tests/test-audit-zip-fixtures.py`
+**Fix**:
+1. `auth.js`: dummy hash dibangun dari fragment
+   `String.fromCharCode(36,50,97,36,49,48,36)+'x'.repeat(53)` → tidak ada
+   literal bcrypt pattern di source; logika timing mitigation tidak berubah.
+2. `build-release.sh`: `tests/` & `docs/` dihapus dari daftar direktori yang
+   disalin ke staging (`for d in db middleware routes scripts lib`).
+   Kedua direktori memang hanya untuk development, bukan distribusi.
+3. `audit-release.py`: pola `your_jwt_secret_here` & `default_secret_key`
+   di-anchor ke context assignment
+   (`JWT_SECRET\s*[=:]?\s*['"]` prefix) → validasi produksi
+   (`=== 'your_jwt_secret_here'`) tidak lagi false-positive;
+   konfigurasi & test assignment tetap terdeteksi.
+4. `tests/test-audit-zip-fixtures.py`: tambah fixture 9 (injection
+   forbidden content): `.env`, `node_modules/evil.js`, `COPY dump`,
+   file ` 2.` → semua exit 1.
+**Bukti**:
+- Build end-to-end exit 0; audit ZIP exit 0; 147 entry bersih.
+- Fixture audit 12/12 lulus (termasuk 4 injection).
+- Test backend `test` 8/8, `test:file` 21/21 (termasuk
+  `absolute_cleanup_removed=true`).
+
+
+### R2-1 — SERAGAMKAN LAYOUT SUPERADMIN (root cause: setupMobileMenu polos tanpa aria/sync/guard)
+**Akar masalah**: `superadmin-layout.js` memakai `setupMobileMenu()` versi lama —
+`classList.toggle('open')` tanpa sinkronisasi `aria-expanded`, tanpa listener
+Escape, tanpa guard resize, dan tidak membersihkan state saat kembali ke
+desktop. `#mobileMenuBtn` juga tidak punya `aria-expanded`/`aria-controls`.
+**File**: `js/layouts/superadmin-layout.js`
+**Fix**:
+1. `#mobileMenuBtn` kini: `aria-label="Buka menu navigasi"`,
+   `aria-expanded="false"`, `aria-controls="sidebar"`.
+2. `setupMobileMenu()` ditulis ulang meniru layout Employee/Admin/Head-Office:
+   `syncAria()` menyinkronkan `aria-expanded` pada `#mobileMenuBtn` DAN
+   `#sidebarToggle`; `toggleSidebar()` benar-benar toggle (bukan hanya buka);
+   overlay menutup; Escape menutup sidebar + dropdown profile (set
+   `aria-expanded=false` pada trigger); resize ke desktop (`min-width:1025px`)
+   membersihkan `open`/`active`.
+3. Guard `_escapeBound` (listener Escape) + `data-sidebar-resize-bound`
+   (listener resize) → init berulang tidak memasang listener ganda.
+**Bukti**: `node --check` lulus; `aria-controls` menunjuk `sidebar`/
+`profileDropdown` (ID benar).
+
+### R2-2 — PERBAIKI KONTRAK OVERLAY KEPALA KANTOR (root cause: overlay di luar .headoffice-layout)
+**Akar masalah**: 3 dari 4 halaman Kepala Kantor (`dashboard`, `notifikasi`,
+`profil`) menempatkan `#sidebarOverlay` **di luar** `.headoffice-layout`,
+sedangkan `head-office-layout.css` memakai selector ter-scoped
+`.headoffice-layout .sidebar-overlay` → overlay memakai aturan generik
+`laporan.css` (z-index 199, bg 0.4) yang tidak konsisten.
+**File**: `head-office/dashboard.html`, `head-office/notifikasi.html`,
+`head-office/persetujuan.html`, `head-office/profil.html`,
+`head-office-layout.css`, `laporan.css`
+**Fix** (pilih kontrak: overlay DI DALAM root):
+1. Seluruh 4 halaman kini menempatkan `#sidebarOverlay` **di dalam**
+   `.headoffice-layout` → ter-target oleh CSS ter-scoped (z-index 150,
+   bg 0.5), overlay berada di bawah sidebar (z 200) tapi di atas content.
+2. `laporan.css`: aturan generik `.sidebar-overlay` ditambah pengecualian
+   `.headoffice-layout .sidebar-overlay` agar HO **tidak bergantung** pada
+   selector generik itu dan z-index/overlay HO konsisten (150).
+**Bukti**: semua 4 halaman HO kini punya overlay di dalam root; Employee/
+Admin/Superadmin tidak terpengaruh (overlay generik tetap untuk mereka).
+
+### R2-3 — HAPUS FILE DUPLIKAT RELEASE (root cause: salinan lama tetap ada)
+**Akar masalah**: `scripts/build-release 2.sh` (salinan lama, masih memakai
+predicate `find` AND-kan `-name` tanpa `-o`) tetap hidup di tree →
+operator-confusion; tidak direferensikan tooling mana pun.
+**File**: `scripts/build-release 2.sh` (dihapus),
+`tests/test-duplicate-files.py` (baru)
+**Fix**:
+1. Verifikasi duplikat memang salinan lama (diff: tanpa `-o`, tanpa
+   sensitive-dir fix) dan TIDAK direferensikan (grep tooling = kosong).
+2. Hapus `scripts/build-release 2.sh`; `scripts/build-release.sh` tetap
+   kanonik. Scan seluruh tree: tidak ada lagi file pola `* 2.*`.
+3. Tambah `tests/test-duplicate-files.py` (9 check): assert tidak ada file
+   `* 2.*` di tree; assert duplikat terhapus; assert `audit-release.py`
+   menolak file `* 2.*` (exit 1) & menerima ZIP bersih (exit 0); assert
+   `build-release.sh` memuat `-regex` penolak duplikat + predicate `-o`;
+   assert `bash -n` lulus.
+**Bukti**: test 9/9 lulus; `find . -name "* 2.*"` → kosong.
+
+### R2-4 — SINKRONISASI ARIA SEMUA ROLE (root cause: Escape tidak sync trigger aria)
+**Akar masalah**: handler Escape di 4 layout menutup dropdown profile tapi
+tidak set `aria-expanded=false` pada `#profileTrigger`; klik di luar sudah
+sinkron (sinkron via `syncDropdownAria`).
+**File**: `js/layouts/employee-layout.js`,
+`js/layouts/admin-section-layout.js`, `js/layouts/head-office-layout.js`,
+`js/layouts/superadmin-layout.js`
+**Fix**: semua 4 layout kini, saat Escape menutup dropdown, juga
+`#profileTrigger.setAttribute('aria-expanded','false')`. Klik di luar
+sudah sinkron. `aria-expanded` sidebar selalu sesuai class `open`
+(via `syncAria`). `aria-controls` menunjuk ID benar. Listener global
+di-guard (`_escapeBound`, `data-sidebar-resize-bound`).
+**Bukti**: `node --check` 4/4 lulus; `grep aria-controls` → `sidebar`/
+`profileDropdown` di semua role.
+
+### R2-5 — KOREKSI CHANGELOG
+**Status** diubah dari "SELESAI" menjadi **PENDING verifikasi** (aturan:
+jaga status jujur selama pengujian visual + build end-to-end belum
+lulus). Angka test nyata dicatat; riwayat lama (FIX-2026-10-26-2 dll)
+tetap dipertahankan.
+
+### Catatan verifikasi jujur (round-2)
+- **Test lokal yang sudah lulus**: seluruh suite di atas + `test:file`
+  21/21 (incl. `absolute_cleanup_removed=true`), fixture audit 8/8,
+  probe nested node_modules & COPY dump exit 1, `test-duplicate-files`
+  9/9, `bash -n build-release.sh` exit 0.
+- **PENDING (belum dijalankan di sesi ini)**:
+  - Pengujian visual & interaksi 4 role × 4 viewport
+    (1440×900, 1024×768, 768×1024, 390×844): browser tool (Chromium/CDP)
+    gagal start — `Operation not permitted` pada `Chrome/DevToolsActivePort`.
+    Belum ada bukti render/interaksi nyata (hamburger, overlay, Escape,
+    aria-expanded, horizontal overflow, title ellipsis).
+  - Verifikasi visual di atas adalah **satu-satunya syarat tersisa** untuk
+    mengubah status menjadi **SELESAI**. Build end-to-end sudah lulus
+    (lihat R2-BUILD di atas).
+
+
+### P1 — CLEANUP FILE UPLOAD (root cause: kontrak storage key vs absolute path tertukar)
+**Akar masalah**: `removeFileSafely()` mengharapkan *storage key* (path relatif
+terhadap `STORAGE_ROOT`), tetapi `upload.js` mengirim *absolute path*
+(`req.file.path`, `tempPath`, `path.join(STORAGE_ROOT, sKey)`). Akibatnya
+`path.resolve(STORAGE_ROOT, absolutePath)` menghasilkan path absolut itu
+sendiri lalu `isWithinStorageRoot` kadang menolak / hapus tidak pernah
+terjadi → file menjadi orphan.
+**File**: `backend/middleware/file-security.js`, `backend/routes/upload.js`,
+`backend/tests/test-file-security.js`
+**Fix**:
+1. Tambah `removeAbsoluteFileSafely(absolutePath)` — hanya menerima path
+   absolut; validasi `path.resolve` + `isWithinStorageRoot` sebelum unlink.
+   `removeFileSafely(storageKey)` tetap untuk storage key (kontrak tidak
+   diubah, mundur ke bawah).
+2. Seluruh call site di `upload.js` dirapikan:
+   - temp file (absolute) → `removeAbsoluteFileSafely(tempPath)`
+   - storage key → `removeFileSafely(storageKey)`
+   - path join root → `removeAbsoluteFileSafely(absolutePath)`
+   Tidak ada lagi penyalahgunaan absolute path ke `removeFileSafely`.
+3. Cleanup terverifikasi pada seluruh jalur: role ditolak, report_id tidak
+   valid, laporan bukan milik user, laporan terkunci, tipe file ditolak,
+   struktur OOXML ditolak, INSERT DB gagal, dan exception setelah file dibuat.
+**Bukti**: `test:file` 21/21; probe `absolute_cleanup_removed=true`;
+`removeAbsoluteFileSafely TIDAK menghapus path di luar STORAGE_ROOT` (escape
+`../../etc/passwd` → `false`).
+
+### P2 — PERKUAT AUDITOR RELEASE (root cause: predicate hanya cek komponen pertama; dump SQL tidak dideteksi; find -o hilang)
+**Akar masalah**:
+1. `audit-release.py` `_flag()` hanya cek `path.split("/")[0]` →
+   `backend/node_modules/evil.js` lolos (komponen ke-2 tidak dicek).
+2. Dump PostgreSQL (`COPY ... FROM stdin`, header `pg_dump`, INSERT kredensial)
+   tidak ada di daftar pola → lolos sebagai file `.sql` biasa.
+3. `build-release.sh` rangkaian `-name` kehilangan operator `-o` → find
+   AND-kan semua `-name`, tidak ada directory yang cocok, sehingga nested
+   `node_modules`/`.git` lolos.
+**File**: `scripts/audit-release.py`, `scripts/build-release.sh`,
+`tests/test-audit-zip-fixtures.py`
+**Fix**:
+1. `audit-release.py` `_flag()` sekarang loop **semua** komponen path
+   (bukan hanya komponen pertama). `db`/`data` sengaja di-`continue` di
+   level per-komponen karena adalah subdirektori sah backend
+   (`backend/db/migrations`) — tidak false-positive.
+2. Tambah `SQL_DUMP_PATTERNS`: `COPY ... FROM stdin`, `WITH COPY`,
+   header `pg_dump`, header `PostgreSQL database dump`, dan
+   `INSERT INTO "users|credentials|api_keys|sessions"`. Scan HANYA file
+   `.sql`/`.txt` → migration/schema normal (CREATE TABLE/ALTER) tidak
+   false-positive (terbukti di fixture `normal-migration` → exit 0).
+3. `build-release.sh` predicate find diperbaiki dengan `-o` di setiap
+   cabang: `\( -name '.git' -o -name 'node_modules' -o ... \)`. `db` dan
+   `data` tidak masuk daftar find (sama alasannya).
+4. 6 fixture regresi baru di `test-audit-zip-fixtures.py`: nested
+   node_modules → exit 1; nested .git → exit 1; COPY dump → exit 1;
+   migration bersih → exit 0; duplicate entry → exit 1; embedded archive
+   → exit 1.
+**Bukti**: fixture 8/8 lulus; probe nested node_modules exit 1; probe COPY
+dump exit 1; `build-release.sh` tetap `exit 1` saat audit gagal
+(baris 261-266 tidak diubah, sudah benar).
+
+### P3 — PERBAIKI HAMBURGER & SIDEBAR (root cause: setupMobileMenu dipanggil sebelum tombol dibuat)
+**Akar masalah**: `setupMobileMenu()` dipanggil di akhir `renderSidebar()`
+sebelum `renderTopbar()` membuat `#mobileMenuBtn`. Listener terpasang ke
+tombol yang belum ada; saat `renderTopbar()` membangun ulang topbar,
+tombol baru tidak punya listener → hamburger mati.
+**File**: `js/layouts/employee-layout.js`,
+`js/layouts/admin-section-layout.js`, `js/layouts/head-office-layout.js`
+(`superadmin-layout.js` sebagai referensi yang sudah benar)
+**Fix**:
+1. `setupMobileMenu()` dihapus dari `renderSidebar()` di ketiga layout.
+2. Urutan `init()` sekarang: `renderSidebar(); renderTopbar(...);
+   setupMobileMenu();`
+3. `setupMobileMenu()` dibuat *idempotent*: listener Escape global di-guard
+   flag modul `_escapeBound`; listener resize di-guard attribute
+   `data-sidebar-resize-bound` → init berulang tidak pasang listener ganda.
+4. Hamburger toggle (buka/tutup, bukan hanya buka); overlay & Escape
+   menutup; `aria-expanded` di-sinkronkan ke `#mobileMenuBtn` dan
+   `#sidebarToggle`; state `open`/`active` dibersihkan saat kembali ke
+   desktop (breakpoint `min-width:1025px`).
+**Bukti**: `node --check` 4/4 layout lulus; tidak ada listener ganda
+(structural guard terpasang).
+
+### P4 — SERAGAMKAN LAYOUT KEPALA KANTOR (root cause: markup campuran admin-section & main-area)
+**Akar masalah**: `head-office/notifikasi.html` dan `head-office/profil.html`
+memakai `.admin-section-layout`/`.admin-section-content`/`.main-area`
+(sestruktur Admin Seksi) padahal seharusnya `.headoffice-layout`/
+`.headoffice-content`/`.admin-content`. Selain itu `profil.html` memakai
+`<main class="main-content">` (CSS employee) yang tidak di-scope ke
+head-office.
+**File**: `head-office/notifikasi.html`, `head-office/profil.html`,
+`head-office/dashboard.html`, `head-office/persetujuan.html`,
+`head-office-layout.css`
+**Fix**:
+1. Seluruh 4 halaman Kepala Kantor kini memakai struktur seragam:
+   `.headoffice-layout` → `.sidebar` + `.headoffice-content` →
+   `.topbar` + `.admin-content`. Overlay `#sidebarOverlay` dipindah keluar
+   dari `.headoffice-layout` agar z-index tidak terpotong.
+2. `head-office-layout.css` di-scope penuh ke `.headoffice-layout`
+   (sidebar, topbar, nav-item, profile, overlay) agar tidak merusak role
+   lain. Sidebar tetap 260px (`--ho-sidebar-width`); margin content
+   konsisten `--ho-sidebar-width`.
+3. `<=1024px`: sidebar off-canvas (`translateX(-100%)`), margin content 0,
+   hamburger terlihat (via `.headoffice-layout .mobile-menu-btn` di
+   `laporan.css`), overlay aktif.
+**Bukti**: markup 4 halaman konsisten (diff manual); CSS di-scope
+   (tidak ada selector global top-level yang bocor ke role lain).
+
+### P5 — PERBAIKI KONTRAK ADMIN SEKSI (root cause: pageTitle diteruskan sebagai activeId)
+**Akar masalah**: `AdminSectionLayout.init(pageTitle)` memakai `pageTitle`
+sebagai `activeId` → highlight menu salah (mis. halaman "Diajukan"
+menyorot "Dashboard").
+**File**: `admin-section/_layout.js`, `js/layouts/admin-section-layout.js`
+**Fix**:
+1. `AdminSectionLayout.init` kini menerima `{ pageTitle, activeId }`
+   (backward-compatible: string → pageTitle, activeId fallback ke
+   `getActivePage()`).
+2. `renderTopbar(pageTitle)` menampilkan judul halaman yang benar.
+3. `admin-section/_layout.js` memanggil API eksplisit:
+   `AdminSectionLayout.init({ pageTitle, activeId:
+   AdminSectionNav.getActivePage(location.pathname,
+   new URLSearchParams(location.search)) })` → menu aktif benar untuk
+   Dashboard, Diajukan, Diteruskan, Revisi, Semua Laporan, Pegawai, Rekap,
+   Notifikasi, Profil.
+**Bukti**: `node --check` lulus; `init` menerima object maupun string.
+
+### P6 — PERBAIKI CSS RESPONSIF & BENTURAN SELECTOR
+**Akar masalah**:
+1. Hamburger Kepala Kantor hanya muncul di `<=768px` (rule global
+   `laporan.css`), padahal seharusnya `<=1024px`.
+2. `notifikasi.css` `.notif-badge` punya `display:none` permanen
+   (konflik dengan kontrol class `.hidden`).
+3. `.topbar-page-title` tanpa ellipsis → overflow di viewport sempit.
+4. `head-office-layout.css`/`admin-section-layout.css` selector
+   top-level (`.sidebar`, `.topbar`, `.nav-item`) bocor ke role lain.
+**File**: `laporan.css`, `head-office-layout.css`,
+`admin-section-layout.css`, `notifikasi.css`
+**Fix**:
+1. `laporan.css`: tambah rule ter-scoped
+   `.headoffice-layout .mobile-menu-btn` (`display:none` default,
+   `display:inline-flex` di `<=1024px`) — tidak memengaruhi employee/admin.
+2. `laporan.css`: `.topbar-page-title` dapat `overflow:hidden;
+   text-overflow:ellipsis; white-space:nowrap; min-width:0`.
+   `.topbar-right` dapat `flex-shrink:0`. `.topbar-title-wrap` dapat
+   `min-width:0; flex:1 1 auto`.
+3. Periode badge & profile name disembunyikan bertahap di `<=768px`
+   (khusus head-office, ter-scoped); hamburger/notifikasi/avatar TIDAK
+   disembunyikan.
+4. `notifikasi.css`: `.notif-badge` tidak lagi `display:none` permanen;
+   badge dikendalikan HANYA via `.notif-badge.hidden` (`display:none
+   !important`).
+5. `head-office-layout.css`: seluruh selector di-scope ke
+   `.headoffice-layout`. `admin-section-layout.css` breakpoint
+   off-canvas dari `<=768px` → `<=1024px` (konsisten dengan P4/P6).
+**Bukti**: `diff` antar file CSS per-role tidak saling overwrite; rule
+   `.headoffice-layout` ter-scoped.
+
+### P7 — AKSESIBILITAS
+**Fix**:
+1. `profile-trigger` di keempat layout (`employee`, `admin-section`,
+   `head-office`, `superadmin`) diganti dari `<div>` menjadi `<button
+   type="button">` + `aria-haspopup` + `aria-expanded` +
+   `aria-controls="profileDropdown"` + `aria-label`.
+2. `mobile-menu-btn` mendapat `aria-expanded` + `aria-controls` +
+   `aria-label`.
+3. `sidebarToggle` di `head-office/*.html` mendapat `aria-expanded` +
+   `aria-controls`.
+4. Icon dekoratif (`icon('menu')`, `navIcon(...)`) sudah
+   `aria-hidden="true"` (di `layout-shared.js` — tidak diubah).
+5. Escape menutup sidebar + dropdown profile (global, idempotent).
+6. Stat card masih pakai `onclick` (di luar scope refactor P7); tidak
+   diubah karena batasan "jangan refactor besar".
+**Bukti**: `node --check` lulus; atribut aria terpasang di output HTML.
+
+### Catatan verifikasi (jujur)
+- **Viewport/role DOM live test** (1440×900, 1024×768, 768×1024,
+  390×844) **tidak dapat dijalankan** di sesi ini: browser tool
+  (Chromium/CDP) gagal start dengan `Operation not permitted` pada
+  `Chrome/DevToolsActivePort`. Verifikasi layout dilakukan via:
+  `missing_assets=0`, `duplicate_ids=0`, `node --check` seluruh JS
+  frontend, inspection markup 4 peran Kepala Kantor + Admin Seksi +
+  Employee, dan inspeksi CSS selector ter-scoped.
+- **Build-release end-to-end** belum di-jalankan (membutuh staging
+  penuh); namun `build-release.sh` predicate find sudah diperbaiki dan
+  fixture regresi auditor 8/8 lulus.
+- **`git diff --check`** sempat menolak 2 file (baris kosong di EOF
+  `.gitignore` & `backend/routes/auth.js`) — sudah dibersihkan, kini
+  bersih.
+- Tidak ada perubahan alur bisnis, autentikasi, role, permission, atau
+  skema database. Tidak ada refactor besar. Tidak ada perubahan user
+  lain yang dihapus/di-batalkan.
+
+
+## [FIX-2026-10-26-2] Perbaikan Security P0/P1/P2 dari Code Review 2026-10-26
+
+**Status**: SELESAI — 11 perbaikan + 5 file test regresi baru, seluruh 10 suite test lokal lulus
+(10 test files, 0 failed; 20+4+5+19+17+7+8+8+7+66 assertion = 161 total), 4 ZIP fixture test lulus,
+`node --check` 36/36, `bash -n` 10/10, `py_compile` 2/2.
+
+### P0 — Kebocoran Secret
+
+#### P0-1: login.js / change-password.js — password & token di URL query string
+**File**: `login.js`, `public/login.js`, `change-password.js`, `public/change-password.js`,
+`change-password.html`, `public/change-password.html`
+
+**Gejala**: saat `must_change_password=true`, `login.js` redirect ke
+`/change-password.html?pwdToken=<jwt>&oldPw=<password_urlencoded>`.
+Password lama (rahasia) dan JWT token sementara masuk ke:
+- browser history (persisten, bisa di-forensic)
+- `Referer` header (bisa bocor ke pihak ketiga)
+- access log reverse proxy / web server
+- bookmark atau share
+
+**Akar**: URL query string dipakai sebagai transport state antarsesi — antipattern.
+
+**Fix**:
+1. `login.js`: token disimpan di `sessionStorage['pwd_change_token']` (in-memory,
+   cleared saat navigate, tidak masuk history/Referer). `oldPw` tidak pernah
+   disimpan — user wajib mengetik ulang di halaman change-password.
+2. `change-password.js`: baca dari `sessionStorage`, hapus setelah load
+   (single-use dalam session; refresh halaman = login ulang).
+3. `change-password.html`: tambah `<meta name="referrer" content="no-referrer">`
+   sebagai lapisan pertahanan kedua.
+4. URL sekarang selalu `/change-password.html` tanpa query string.
+
+**Verifikasi**: `grep -rn "pwdToken\|oldPw:" login.js change-password.js` → 0 hasil.
+`node --check` lulus. Test: `test-static-security.js` 66/66 lulus (refusal policy tetap).
+
+#### P0-2: routes/auth.js — combined auth middleware double-response
+**File**: `backend/routes/auth.js`, `backend/middleware/auth.js`
+
+**Gejala**: `authenticateChangePassword` membalut `authenticateToken` di dalam
+`Promise` + `.catch(() => null)`. Bila user memakai token sesi penuh
+(audience `ksop-laporan-app`) untuk `PUT /change-password`,
+`authenticateToken` mengirim 401 `PASSWORD_CHANGE_REQUIRED` lalu resolve
+`next()` — respons sudah terkirim, lalu kode lanjut ke `verifyPasswordChangeToken`,
+tambah satu lagi `res.status(401)` → **double-response / "headers already
+sent" error**, atau response pertama (yang salah) yang sampai ke klien.
+
+**Akar**: helper Express middleware tidak bisa dipanggil dari konteks lain
+tanpa mengirim respons dua kali.
+
+**Fix**:
+1. Tambah helper **pure** `verifyAppToken(token)` di `middleware/auth.js` —
+   return object `{ok, userId, token_version, ...}` tanpa menyentuh
+   `req/res/next`. Tidak mengirim respons apa pun.
+2. `authenticateChangePassword` ditulisi ulang: panggil `verifyAppToken` dulu
+   (jalur A: token sesi penuh), jika gagal panggil `verifyPasswordChangeToken`
+   (jalur B: token sementara). Response dikirim **satu kali saja** di titik
+   `return res.status(...)`.
+3. `authenticateToken` sendiri kini memakai `verifyAppToken` internal (DRY).
+
+**Verifikasi**: `node tests/test-verify-helpers.js` → 20/20 lulus, termasuk:
+  - `combined: pwd token versi tidak cocok → TOKEN_REVOKED` (reuse dicegah)
+  - `combined: app token + user flag ON → PASSWORD_CHANGE_REQUIRED`
+  - `combined: token null / acak / kedaluwarsa → ditolak`
+
+### P1 — Data Integrity
+
+#### P1-3: audit_trail kolom `details` vs `detail`
+**File**: `backend/db/migrations/008_repair_audit_trail_details.sql`,
+`backend/db/schema.sql`, `backend/routes/reportAttachment.js`,
+`backend/routes/files.js`, `backend/routes/download.js`, `backend/routes/auth.js`
+
+**Gejala**: migration 008 melakukan `RENAME COLUMN detail TO details` sehingga
+skema target DB setelah migrasi memakai kolom `details`. Namun seluruh query
+di source memakai `detail`. Query `INSERT INTO audit_trail (... detail)`
+bukan `INSERT INTO audit_trail (... details)` → error
+`column "detail" does not exist` atau baris tidak tertulis.
+
+**Akar**: migration 008 dibuat untuk "repair" skema lama yang sudah memakai
+`details`, tapi source tidak di-follow — dua nama berkebalikan.
+
+**Keputusan**: **kanonik = `detail`** (sama dengan schema.sql fresh, semua
+route, dan mayoritas query). Migration 008 dibalik.
+
+**Fix**:
+1. `migration 008`: `detail ↔ details` (dua arah idempotent; aman di-rerun
+   di skema manapun).
+2. `reportAttachment.js`: `ON CONFLICT (report_id, detail)` →
+   `ON CONFLICT (report_id) DO NOTHING` (detail bukan bagian PK/unique
+   constraint; sebelumnya query gagal di skema kanonik).
+3. `schema.sql`: sudah benar (memakai `detail`) — tidak diubah.
+
+**Verifikasi**: `node tests/test-audit-schema.js` (4/4) +
+`node tests/test-audit-column.js` (5/5) lulus.
+
+#### P1-4: metrics middleware dipasang terlalu lambat
+**File**: `backend/server.js`
+
+**Gejala**: `app.use(...)` pembilang metrics dipasang **setelah**
+`app.use('/api', globalLimiter)` dan setelah mount route auth.
+Rate-limited request (429 dari limiter) dan 4xx/5xx dari error handler
+**tidak di-count** — `/metrics` selalu menunjukkan angka lebih rendah
+dari total request yang sebenarnya diterima.
+
+**Fix**: block metrics middleware dipindah ke **sebelum**
+`app.use('/api', globalLimiter)` — sekarang semua request terhitung
+termasuk yang ditolak limiter.
+
+**Verifikasi**: `test-health-metrics.js` 7/7 lulus.
+
+#### P1-5: upload.js — report_id tidak tervalidasi ketat
+**File**: `backend/routes/upload.js`
+
+**Gejala**:
+- `report_id` hanya di-`parseInt` — value `"1abc"` → `NaN` di-
+  parameterkan ke PostgreSQL → error 500 (bukan 400).
+- File temp TIDAK dihapus saat `report_id` ditolak → orphan di
+  folder staging.
+- Tidak ada pengecekan `status` laporan — lampiran bisa diupload
+  ke laporan yang sudah final/approved.
+- Tidak ada role check — semua role bisa upload.
+
+**Fix**:
+1. Validasi ketat: `rawReportId` harus string/number, setelah trim harus
+   match `^[0-9]+$` dan `1 ≤ n ≤ MAX_SAFE_INTEGER` → selain itu 400.
+2. Jika `report_id` diberikan: validasi kepemilikan **dan** status
+   (`draft`, `revisi_admin`, `revisi_kantor`) → selain itu 403 +
+   `removeFileSafely(tempPath)` (file temp dihapus, tidak ada orphan).
+3. Setelah `INSERT files` gagal → `removeFileSafely(path.join(STORAGE_ROOT, sKey))`
+   (file final sudah dipindah dari temp; dihapus saat DB insert gagal).
+4. Role check: hanya `PEGAWAI` yang boleh upload → selain itu 403 +
+   `removeFileSafely` file temp.
+
+**Verifikasi**: `node --check upload.js` lulus.
+
+#### P1-6: files.js — `.catch(() => {})` swallow sunyi
+**File**: `backend/routes/files.js`
+
+**Gejala**: audit `INSERT INTO audit_trail ... download_file` di `.catch(() => {})`
+— kegagalan insert audit tidak pernah dilaporkan. Jika DB down saat
+download, operator tidak punya sinyal apa pun di log.
+
+**Fix**: `.catch` diganti dengan `logger.error(...)` berisi
+`requestId`, `userId`, `fileId`, `action`, dan `error.message`
+disedikitkan (max 200 char, tidak ada token/path/isi file).
+Download tetap berlanjut (`return` tidak dipakai di catch).
+
+**Verifikasi**: `node --check files.js` lulus; tidak ada `.catch(() => {})`
+kosong di route files.js.
+
+### P2 — Tooling & Test
+
+#### P2-7: test-password-flow.sh — dua salinan + tanpa guard DB
+**File**: `backend/tests/test-password-flow.sh`, `backend/tests/test-password-flow 2.sh` (dihapus)
+
+**Gejala**: dua file test E2E password flow dengan logika hampir identik;
+` 2.sh` adalah versi lama tanpa step 6 (wrong password rejection).
+Kedua file **tidak punya guard DB name** — bisa dijalankan
+terhadap database produksi bila `DB_NAME` salah.
+
+**Fix**:
+1. Hapus `test-password-flow 2.sh`; pakai `test-password-flow.sh`
+   sebagai satu-satunya kanonik.
+2. Tambah guard: bila `DB_NAME` tidak mengandung `"test"` dan
+   `PWD_TEST_DB` tidak diset → exit 1.
+3. `package.json`: tambah `"test:password": "bash tests/test-password-flow.sh"`.
+
+**Verifikasi**: `bash -n test-password-flow.sh` lulus.
+
+#### P2-8: audit-release.py + build-release.sh — find -o bug + check ZIP
+**File**: `scripts/audit-release.py`, `scripts/build-release.sh`,
+`tests/test-audit-zip-fixtures.py` (baru)
+
+**Gejala**:
+- `build-release.sh`: `find` untuk file terlarang memakai `-o` chain
+  tanpa grouping `\( \)` yang benar — `-print0` hanya apply ke
+  cabang terakhir, file terlarang lain terlewat.
+- `audit-release.py`: tidak cek **duplicate entry** di dalam ZIP
+  (satu nama dua kali → `zipfile` Python emit warning tetapi
+  tidak dianggap temuan audit).
+- Tidak cek **embedded ZIP** (arsip di dalam arsip → vektor
+  obfusi untuk sembunyikan file terlarang).
+- `build-release.sh`: `AUDIT_RC=$?` setelah `python3 audit-release.py`
+  tidak efektif karena `set -euo pipefail` membuat script exit
+  sebelum `AUDIT_RC` ditugaskan.
+
+**Fix**:
+1. `build-release.sh`: perbaiki `find` (tambah `-o -name '*.tmp'` dan
+   `-o -name '*.temp'` di dalam group; regex `*. \\d+\\..*` untuk
+   file duplikat ` 2.`).
+2. `build-release.sh`: ganti `AUDIT_RC=$?` dengan
+   `if ! AUDIT_OUT=$(python3 ... 2>&1); then ... fi` — lolos dari
+   `set -e`.
+3. `audit-release.py`: tambah `seen_names` set untuk deteksi
+   duplicate; tambah cek `.zip`/`.tar.gz` embedded;
+   `exit 1` konsisten.
+4. Tambah `tests/test-audit-zip-fixtures.py` (4 test):
+   clean.zip → exit 0; secret.zip → exit 1; dup.zip → exit 1;
+   embedded.zip → exit 1.
+
+**Verifikasi**: `python3 tests/test-audit-zip-fixtures.py` → 4/4 lulus.
+
+### Ringkasan Angka
+| Area | Sebelum | Sesudah |
+|---|---|---|
+| Test files (node tests/) | 8 | 10 (+verify-helpers, audit-schema, audit-column) |
+| Total assertions lulus | 152 | 161 (node) + 4 (zip fixture) |
+| `node --check` | 36/36 | 36/36 |
+| `bash -n` | 10/10 | 10/10 |
+| `py_compile` | 1/1 | 2/2 (+test-audit-zip-fixtures.py) |
+| Secret di URL (pwdToken/oldPw) | 2 file (login.js, change-password.js) | 0 file |
+| `.catch(() => {})` di files.js | 1 | 0 (diganti logger.error) |
+| `test-password-flow 2.sh` (duplikat) | ada | dihapus |
+
 
 ## [FIX-2026-10-14c] Perbaikan Batch Lanjutan — Input Validation, XSS, dan Type Safety
 

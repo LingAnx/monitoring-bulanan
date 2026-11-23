@@ -24,7 +24,7 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">Manajemen Pengguna</h3>
-            <button type="button" class="btn btn-primary btn-sm" onclick="showUserModal()">+ Tambah Pengguna</button>
+            <button type="button" class="btn btn-primary btn-sm" data-click-action="showUserModal">+ Tambah Pengguna</button>
           </div>
           <div id="usersContent">
             <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
@@ -39,9 +39,9 @@
     <div class="modal modal-lg">
       <div class="modal-header">
         <h3 class="modal-title" id="userModalTitle">Tambah Pengguna</h3>
-        <button type="button" class="modal-close" onclick="closeUserModal()">&times;</button>
+        <button type="button" class="modal-close" data-click-action="closeUserModal">&times;</button>
       </div>
-      <form id="userForm" onsubmit="saveUser(event)">
+      <form id="userForm" data-submit-action="saveUser" data-action-event="true">
         <input type="hidden" id="userId" value="">
         <div class="form-group">
           <label>Username</label>
@@ -80,7 +80,7 @@
           </label>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-outline" onclick="closeUserModal()">Batal</button>
+          <button type="button" class="btn btn-outline" data-click-action="closeUserModal">Batal</button>
           <button type="submit" class="btn btn-primary">Simpan</button>
         </div>
       </form>
@@ -92,9 +92,9 @@
     <div class="modal modal-sm">
       <div class="modal-header">
         <h3 class="modal-title">Reset Password</h3>
-        <button type="button" class="modal-close" onclick="closeResetModal()">&times;</button>
+        <button type="button" class="modal-close" data-click-action="closeResetModal">&times;</button>
       </div>
-      <form onsubmit="resetPassword(event)">
+      <form data-submit-action="resetPassword" data-action-event="true">
         <input type="hidden" id="resetUserId">
         <input type="hidden" id="resetUserName">
         <div class="form-group">
@@ -107,7 +107,7 @@
           <input type="password" id="resetConfirm" required minlength="6">
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-outline" onclick="closeResetModal()">Batal</button>
+          <button type="button" class="btn btn-outline" data-click-action="closeResetModal">Batal</button>
           <button type="submit" class="btn btn-danger">Reset Password</button>
         </div>
       </form>
@@ -116,9 +116,11 @@
 
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/layout-shared.js"></script>
   <script src="/js/navigation/superadmin-navigation.js"></script>
   <script src="/js/layouts/superadmin-layout.js"></script>
-  <script src="/app.js"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/translations.js"></script>
   <script src="/superadmin/_layout.js"></script>
   <script src="/superadmin/pengguna.js?v=4"></script>

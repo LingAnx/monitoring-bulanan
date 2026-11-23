@@ -41,7 +41,7 @@ const globalLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Stricter rate limit for auth endpoints
+// Rate limit ketat untuk endpoint kredensial (login).
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -86,6 +86,9 @@ const publicDir = path.resolve(__dirname, '..', 'public');
 // Defense-in-depth: tolak path sensitif sebelum static handler
 app.use(staticGuard);
 
+// Cache headers harus dipasang sebelum static handler mengakhiri response.
+app.use(cacheHeaders);
+
 // Static: hanya public/
 app.use(express.static(publicDir, {
   dotfiles: 'deny',
@@ -93,8 +96,40 @@ app.use(express.static(publicDir, {
   fallthrough: true,
 }));
 
-// Cache headers per type
-app.use(cacheHeaders);
+// ── Metrics (in-memory, diagnostik operator) ───────────────
+// Middleware penghitung dipasang SEBELUM route handler agar
+// SEMUA request terhitung (termasuk 404/4xx yang di-handle
+// route) dan hanya SATU kali per request (flag `counted`).
+// Error 5xx yang melewati global error handler TIDAK
+// di-double-count — status class bucket sama dihitung saat
+// `finish` event (satu-satunya titik pengukuran).
+const SERVER_START = Date.now();
+const metrics = {
+  requests: 0,
+  errors5xx: 0,
+  perStatusClass: { '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0 },
+  startTime: SERVER_START,
+};
+
+// Middleware pembilang: dipasang SEBELUM globalLimiter/route sehingga
+// SEMUA request terhitung (termasuk request yang ditolak rate-limit
+// maupun 404 handler) — satu titik pengukuran, tanpa double-count.
+// Tidak memakai flag `metricsCounted`: middleware ini hanya ada SATU,
+// dan double-mount tidak terjadi karena server.js mengeksekusi file
+// ini satu kali.
+app.use((req, res, next) => {
+  metrics.requests += 1;
+  res.on('finish', () => {
+    const bucket = Math.floor(res.statusCode / 100) + 'xx';
+    if (metrics.perStatusClass[bucket] !== undefined) {
+      metrics.perStatusClass[bucket] += 1;
+    }
+    if (res.statusCode >= 500) {
+      metrics.errors5xx += 1;
+    }
+  });
+  next();
+});
 
 // Uploads: hanya lewat route API (diproteksi auth), bukan static publik
 // (route upload.js menggunakan multer — tidak perlu express.static di sini)
@@ -104,8 +139,11 @@ app.use(cacheHeaders);
 // Apply general rate limiter only to API routes
 app.use('/api', globalLimiter);
 
-// Auth routes with stricter rate limiting
+// Password endpoints (login) — limiter ketat, dipasang SEBELUM
+// mount router. /change-password memakai authLimiter (max 10/15m)
+// karena sudah di-require authenticateChangePassword.
 app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/change-password', authLimiter);
 app.use('/api/auth', authRoutes);
 
 // Protected routes
@@ -153,12 +191,22 @@ app.get('/ready', async (req, res) => {
   } catch (error) {
     // Log detail di server — respons hanya memberi tahu status
     // koneksi, tanpa pesan error mentah (bisa memuat kredensial/string koneksi).
+    // lastError: pesan error DISANITASI (max 200 char, tanpa indikasi
+    // credential) agar operator tetap dapat diagnosa tanpa kebocoran.
     logger.error('Health check failed:', error, { requestId: req.requestId });
+    let lastError = 'unknown error';
+    if (error && error.message) {
+      const msg = String(error.message).replace(/^Error:/i, '').trim();
+      if (!/password|credential|PGPASSWORD/i.test(msg)) {
+        lastError = msg.slice(0, 200);
+      }
+    }
     res.status(503).json({
       status: 'ERROR',
       timestamp: new Date().toISOString(),
       database: {
-        status: 'disconnected'
+        status: 'disconnected',
+        lastError
       }
     });
   }
@@ -167,60 +215,49 @@ app.get('/ready', async (req, res) => {
 // /ready — readiness probe (DB check). Duplicate of the earlier /ready
 // that was already in the file; keep only one.
 
-// Metrics endpoint (simple in-memory metrics)
-// /metrics hanya untuk diagnostik operator — dilindungi oleh token
-// METRICS_TOKEN (env). Jika env tidak diset, endpoint tetap terbuka
-// hanya untuk IP localhost (127.0.0.1 / ::1 / ::) — semua lainnya 404.
-// Tidak mengungkap detail error ke klien. lastError disimpan
-// terbatas di error handler (tanpa stack trace) agar endpoint ini
-// tidak menjadi vektor kebocoran informasi.
-let metrics = {
-  requests: 0,
-  errors: 0,
-  startTime: Date.now(),
-  lastError: null,
-  perStatus: {},
-};
 
-// Middleware: update metrics per request — harus BEFORE route handler
-app.use((req, res, next) => {
-  metrics.requests++;
-  res.on('finish', () => {
-    const bucket = Math.floor(res.statusCode / 100) + 'xx';
-    metrics.perStatus[bucket] = (metrics.perStatus[bucket] || 0) + 1;
-    if (res.statusCode >= 500) metrics.errors++;
-  });
-  next();
-});
 
+// /metrics — diagnostik operator. Proteksi dua-lapis:
+//  1. Bila METRICS_TOKEN diset: hanya pemanggil dengan
+//     `Authorization: Bearer $METRICS_TOKEN` yang lolos (untuk
+//     IP mana pun — misalnya dari jaringan operator).
+//  2. Tanpa METRICS_TOKEN: hanya IP localhost (127.0.0.1 / ::1 /
+//     ::ffff:127.0.0.1) yang diterima; semua yang lain → 404
+//     (endpoint tidak terlihat, bukan 403 — hindari fingerprinting).
+// Respon hanya angka agregat + uptime — TANPA stack trace, tanpa
+// detail SQL, tanpa isi request, tanpa credential.
 app.get('/metrics', (req, res) => {
   const metricsToken = process.env.METRICS_TOKEN;
-  const ip = req.ip || req.socket?.remoteAddress || '';
+  const ip = req.ip || (req.socket && req.socket.remoteAddress) || '';
   const isLocalhost = (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1');
-  const authHeader = req.get('Authorization') || '';
-  const hasToken = metricsToken && authHeader === `Bearer ${metricsToken}`;
-  if (metricsToken && !hasToken && !isLocalhost) {
+  if (metricsToken) {
+    const authHeader = req.get('Authorization') || '';
+    // Constant-time compare untuk anti timing attack.
+    const crypto = require('crypto');
+    const a = Buffer.from(authHeader, 'utf8');
+    const b = Buffer.from(`Bearer ${metricsToken}`, 'utf8');
+    const lengthOk = a.length === b.length;
+    const eq = lengthOk && crypto.timingSafeEqual(a, b);
+    if (!eq) {
+      return res.status(404).json({ success: false, message: 'Endpoint tidak ditemukan' });
+    }
+  } else if (!isLocalhost) {
+    // Tanpa token: hanya localhost.
     return res.status(404).json({ success: false, message: 'Endpoint tidak ditemukan' });
   }
   res.json({
-    uptime: `${Math.floor((Date.now() - metrics.startTime) / 1000)}s`,
+    uptimeSeconds: Math.floor((Date.now() - SERVER_START) / 1000),
     requests: metrics.requests,
-    errors: metrics.errors,
-    perStatus: metrics.perStatus,
-    timestamp: new Date().toISOString()
+    errors5xx: metrics.errors5xx,
+    perStatusClass: metrics.perStatusClass,
+    timestamp: new Date().toISOString(),
   });
 });
 
 app.use((err, req, res, next) => {
-  metrics.errors++;
+  // (Pembilang metrics sudah di `finish` event — tidak ditambah
+  // di sini agar tidak double-count.)
   // Stack trace hanya untuk log server — TIDAK dikirim ke klien.
-  // lastError.message disimpan terbatas (slice) agar /metrics tidak
-  // membocorkan detail internal ke siapa pun yang bisa memanggilnya.
-  metrics.lastError = {
-    message: String(err.message || '').slice(0, 200),
-    timestamp: new Date().toISOString()
-  };
-
   logger.error('Error:', err, { requestId: req.requestId });
 
   if (err.message === 'Not allowed by CORS') {
@@ -239,14 +276,7 @@ app.use((err, req, res, next) => {
 });
 
 app.use((req, res) => {
-  // API 404: selalu JSON — jangan kembalikan HTML frontend
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ success: false, message: 'Endpoint tidak ditemukan' });
-  }
-  // Non-API 404: redirect ke landing untuk UX
-  if (req.method === 'GET' && !req.path.endsWith('.css') && !req.path.endsWith('.js')) {
-    return res.status(404).json({ success: false, message: 'Endpoint tidak ditemukan' });
-  }
+  // Semua path yang tidak ditemukan menghasilkan JSON 404 yang konsisten.
   res.status(404).json({ success: false, message: 'Endpoint tidak ditemukan' });
 });
 

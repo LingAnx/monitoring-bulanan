@@ -24,7 +24,7 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title" id="pageTitle">Notifikasi</h3>
-            <button type="button" class="btn btn-primary btn-sm" onclick="showSendModal()">Kirim Notifikasi</button>
+            <button type="button" class="btn btn-primary btn-sm" data-click-action="showSendModal">Kirim Notifikasi</button>
           </div>
           <div id="notifContent">
             <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
@@ -39,9 +39,9 @@
     <div class="modal">
       <div class="modal-header">
         <h3 class="modal-title">Kirim Notifikasi</h3>
-        <button type="button" class="modal-close" onclick="closeSendModal()">&times;</button>
+        <button type="button" class="modal-close" data-click-action="closeSendModal">&times;</button>
       </div>
-      <form onsubmit="sendNotification(event)">
+      <form data-submit-action="sendNotification" data-action-event="true">
         <div class="form-group">
           <label>Tujuan</label>
           <select id="sendTarget">
@@ -65,7 +65,7 @@
           </select>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-outline" onclick="closeSendModal()">Batal</button>
+          <button type="button" class="btn btn-outline" data-click-action="closeSendModal">Batal</button>
           <button type="submit" class="btn btn-primary">Kirim</button>
         </div>
       </form>
@@ -74,9 +74,11 @@
 
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/layout-shared.js"></script>
   <script src="/js/navigation/superadmin-navigation.js"></script>
   <script src="/js/layouts/superadmin-layout.js"></script>
-  <script src="/app.js"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/translations.js"></script>
   <script src="/superadmin/_layout.js"></script>
   <script src="/superadmin/notifikasi.js?v=1"></script>

@@ -19,17 +19,17 @@ const BASE = `http://127.0.0.1:${PORT}`;
 
 let passed = 0;
 let failed = 0;
+const pendingReports = [];
 
 function report(name, fn) {
-  try {
-    fn();
+  pendingReports.push(Promise.resolve().then(fn).then(() => {
     console.log(`  ✅ PASS: ${name}`);
     passed++;
-  } catch (e) {
+  }).catch(e => {
     console.error(`  ❌ FAIL: ${name}`);
     console.error(`     ${e.message}`);
     failed++;
-  }
+  }));
 }
 
 // Helper: GET request, return { status, body, headers }
@@ -267,11 +267,13 @@ async function main() {
         `Cache-Control: ${r.headers['cache-control']}`);
     });
 
-    report('Cache-Control untuk .css = public', async () => {
+    report('Cache-Control untuk .css = no-cache', async () => {
       const r = await get('/style.css');
-      assert.ok((r.headers['cache-control'] || '').includes('public'),
+      assert.ok((r.headers['cache-control'] || '').includes('no-cache'),
         `Cache-Control: ${r.headers['cache-control']}`);
     });
+
+    await Promise.all(pendingReports);
 
   } finally {
     server.close();
@@ -291,6 +293,7 @@ function buildTestApp() {
 
   const { staticGuard, cacheHeaders, securityHeaders } = require('../middleware/static-guard');
   const { requestLogger } = require('../middleware/logger');
+  const { authenticateToken } = require('../middleware/auth');
   const authRoutes = require('../routes/auth');
   const laporanRoutes = require('../routes/laporan');
 
@@ -302,13 +305,12 @@ function buildTestApp() {
 
   const publicDir = pathMod.resolve(__dirname, '..', '..', 'public');
   app.use(staticGuard);
+  app.use(cacheHeaders);
   app.use(express.static(publicDir, {
     dotfiles: 'deny',
     index: false,
     fallthrough: true,
   }));
-  app.use(cacheHeaders);
-
   const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 500,
@@ -318,6 +320,7 @@ function buildTestApp() {
 
   // Route API (tanpa DB — hanya untuk test static)
   app.use('/api/auth', authRoutes);
+  app.use('/api/laporan', authenticateToken, laporanRoutes);
 
   // 404 handler
   app.use((req, res) => {

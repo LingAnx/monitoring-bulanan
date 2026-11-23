@@ -20,13 +20,13 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-icon">★</div>
+          <div class="logo-icon"><span class="icon icon-star" aria-hidden="true"></span></div>
           <div class="logo-text">
             <span class="logo-title">KSOP</span>
             <span class="logo-subtitle">Cirebon</span>
           </div>
         </div>
-        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">☰</button>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
       </div>
       <nav class="sidebar-nav" id="sidebarNav"></nav>
       <div class="sidebar-footer"></div>
@@ -57,8 +57,8 @@
                 <option value="2026">2026</option>
                 <option value="2025">2025</option>
               </select>
-              <button type="button" class="btn btn-primary btn-sm" onclick="loadRekap()">Tampilkan</button>
-              <a href="#" id="exportBtn" class="btn btn-success btn-sm" onclick="exportCSV(event)">Export CSV</a>
+              <button type="button" id="loadRekapBtn" class="btn btn-primary btn-sm">Tampilkan</button>
+              <button type="button" id="exportRekapBtn" class="btn btn-success btn-sm">Export CSV</button>
             </div>
           </div>
           <div id="rekapContent">
@@ -74,11 +74,12 @@
 
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/layout-shared.js"></script>
   <script src="/js/navigation/admin-section-navigation.js?v=2"></script>
   <script src="/js/layouts/admin-section-layout.js?v=2"></script>
-  <script src="/app.js"></script>
-  <script src="/translations.js"></script>
   <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
+  <script src="/translations.js"></script>
   <script src="/admin-section/_layout.js"></script>
   <script src="/admin-section/rekap.js?v=4"></script>
 </body>

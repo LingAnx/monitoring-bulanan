@@ -36,7 +36,7 @@
               <select id="filterTahun" title="Filter tahun" class="filter-select">
                 <option value="2026" selected>2026</option><option value="2025">2025</option>
               </select>
-              <button type="button" class="btn btn-primary btn-sm" onclick="loadMonitoring()">Terapkan</button>
+              <button type="button" class="btn btn-primary btn-sm" data-click-action="loadMonitoring">Terapkan</button>
             </div>
           </div>
           <div id="monitoringContent">
@@ -49,9 +49,11 @@
   </div>
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/layout-shared.js"></script>
   <script src="/js/navigation/superadmin-navigation.js"></script>
   <script src="/js/layouts/superadmin-layout.js"></script>
-  <script src="/app.js"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/translations.js"></script>
   <script src="/superadmin/_layout.js"></script>
   <script src="/superadmin/monitoring.js?v=1"></script>

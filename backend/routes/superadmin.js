@@ -6,6 +6,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const pool = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 // ── Security: Backup files stored in PRIVATE directory, NOT under express.static ──
 const BACKUP_DIR = path.join(__dirname, '..', 'private', 'backups');
@@ -93,7 +94,7 @@ router.get('/', authenticateToken, requireRole('SUPERADMIN'), async (req, res) =
       },
     });
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
+    logger.error('Error fetching dashboard stats', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat statistik dashboard' });
   }
 });
@@ -138,7 +139,7 @@ router.get('/audit-trail', authenticateToken, requireRole('SUPERADMIN'), async (
 
     res.json({ success: true, data: result.rows, pagination: { page: parseInt(page), limit: parseInt(limit), total } });
   } catch (error) {
-    console.error('Error fetching audit trail:', error);
+    logger.error('Error fetching audit trail', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat audit trail' });
   }
 });
@@ -195,7 +196,7 @@ router.get('/monitoring', authenticateToken, requireRole('SUPERADMIN'), async (r
       data: { bulan: targetBulan, tahun: targetTahun, sections: sectionsSummary, compliance_rate: complianceRate },
     });
   } catch (error) {
-    console.error('Error fetching monitoring data:', error);
+    logger.error('Error fetching monitoring data', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat data monitoring' });
   }
 });
@@ -206,7 +207,7 @@ router.get('/periode', authenticateToken, requireRole('SUPERADMIN'), async (req,
     const result = await pool.query('SELECT * FROM periode_laporan ORDER BY tahun DESC, bulan DESC');
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching periods:', error);
+    logger.error('Error fetching periods', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat periode' });
   }
 });
@@ -228,7 +229,7 @@ router.post('/periode', authenticateToken, requireRole('SUPERADMIN'), async (req
     );
     res.status(201).json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('Error creating period:', error);
+    logger.error('Error creating period', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal membuat periode' });
   }
 });
@@ -257,7 +258,7 @@ router.put('/periode/:id', authenticateToken, requireRole('SUPERADMIN'), async (
     );
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('Error updating period:', error);
+    logger.error('Error updating period', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memperbarui periode' });
   }
 });
@@ -275,7 +276,7 @@ router.delete('/periode/:id', authenticateToken, requireRole('SUPERADMIN'), asyn
     );
     res.json({ success: true, message: 'Periode dihapus' });
   } catch (error) {
-    console.error('Error deleting period:', error);
+    logger.error('Error deleting period', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal menghapus periode' });
   }
 });
@@ -293,7 +294,7 @@ router.post('/periode/:id/close', authenticateToken, requireRole('SUPERADMIN'), 
     );
     res.json({ success: true, data: result.rows[0], message: 'Periode berhasil ditutup' });
   } catch (error) {
-    console.error('Error closing period:', error);
+    logger.error('Error closing period', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal menutup periode' });
   }
 });
@@ -311,7 +312,7 @@ router.post('/periode/:id/open', authenticateToken, requireRole('SUPERADMIN'), a
     );
     res.json({ success: true, data: result.rows[0], message: 'Periode berhasil dibuka' });
   } catch (error) {
-    console.error('Error opening period:', error);
+    logger.error('Error opening period', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal membuka periode' });
   }
 });
@@ -345,7 +346,7 @@ router.get('/settings', authenticateToken, requireRole('SUPERADMIN'), async (req
       data: settings
     });
   } catch (error) {
-    console.error('ERROR fetching settings', error);
+    logger.error('Error fetching settings', { error: error.message });
 
     res.status(500).json({
       success: false,
@@ -409,7 +410,7 @@ router.put(
     } catch (error) {
       await client.query('ROLLBACK');
 
-      console.error('Error updating settings:', error);
+      logger.error('Error updating settings', { error: error.message });
 
       res.status(500).json({
         success: false,
@@ -436,7 +437,7 @@ router.get('/export/users', authenticateToken, requireRole('SUPERADMIN'), async 
     );
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error exporting users:', error);
+    logger.error('Error exporting users', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal mengekspor pengguna' });
   }
 });
@@ -459,7 +460,7 @@ router.get('/export/reports', authenticateToken, requireRole('SUPERADMIN'), asyn
     );
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error exporting reports:', error);
+    logger.error('Error exporting reports', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal mengekspor laporan' });
   }
 });
@@ -487,7 +488,7 @@ router.post('/backup', authenticateToken, requireRole('SUPERADMIN'), async (req,
     );
     res.json({ success: true, message: 'Backup berhasil dibuat', data: { filename, size: fs.statSync(filepath).size } });
   } catch (error) {
-    console.error('Error creating backup:', error);
+    logger.error('Error creating backup', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal membuat backup' });
   }
 });
@@ -502,7 +503,7 @@ router.get('/backup/list', authenticateToken, requireRole('SUPERADMIN'), async (
     }));
     res.json({ success: true, data: list });
   } catch (error) {
-    console.error('Error listing backups:', error);
+    logger.error('Error listing backups', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat daftar backup' });
   }
 });
@@ -525,7 +526,7 @@ router.get('/backup/download/:filename', authenticateToken, requireRole('SUPERAD
     );
     res.download(filepath, safeName);
   } catch (error) {
-    console.error('Error downloading backup:', error);
+    logger.error('Error downloading backup', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal mengunduh backup' });
   }
 });
@@ -568,7 +569,7 @@ router.post('/notifications/send', authenticateToken, requireRole('SUPERADMIN'),
       res.json({ success: true, message: `Notifikasi dikirim ke ${result.rows.length} pengguna` });
     }
   } catch (error) {
-    console.error('Error sending notification:', error);
+    logger.error('Error sending notification', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal mengirim notifikasi' });
   }
 });

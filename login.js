@@ -34,20 +34,24 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const data = await res.json();
 
     if (res.ok && data.success) {
-      // Use AuthStore for all auth state
-      _auth('setToken', data.token);
-      _auth('setCurrentUser', data.user);
-      // Redirect to role-appropriate dashboard
-      redirectToDashboard(data.user.role);
-    } else {
-      // Password change required: redirect to change-password flow.
-      // User cannot proceed to dashboard until they set a new password.
-      if (data.code === 'PASSWORD_CHANGE_REQUIRED') {
+      // ── Alur force password change (skema v2) ─────────────
+      // Server mengembalikan `mustChangePassword: true` +
+      // `temporaryToken` (bukan token sesi penuh). Tidak ada
+      // yang disimpan ke AuthStore; token sementara dikirim
+      // sebagai parameter URL ke halaman change-password.
+      if (data.mustChangePassword === true && data.temporaryToken) {
+        // Token sementara disimpan di sessionStorage (bukan URL) —
+        // hindari kebocoran lewat browser history, Referer, atau log.
         _auth('clear');
-        _auth('setCurrentUser', { username, must_change_password: true });
+        try { sessionStorage.setItem('pwd_change_token', data.temporaryToken); } catch (e) {}
         window.location.href = '/change-password.html';
         return;
       }
+      // Normal login.
+      _auth('setToken', data.token);
+      _auth('setCurrentUser', data.user);
+      redirectToDashboard(data.user.role);
+    } else {
       errEl.textContent = data.message || T.messages.gagal_login;
       errEl.className = 'error-message show';
       btn.disabled = false;

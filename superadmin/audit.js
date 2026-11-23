@@ -68,11 +68,11 @@ async function loadAudit() {
     const totalPages = Math.ceil(pagination.total / pagination.limit);
     let pagHtml = '';
     if (pagination.total > pagination.limit) {
-      pagHtml += `<button class="btn btn-sm btn-outline" onclick="goAuditPage(${auditPage - 1})" ${auditPage <= 1 ? 'disabled' : ''}>Prev</button>`;
+      pagHtml += `<button class="btn btn-sm btn-outline" data-click-action="goAuditPage" data-action-arg="${auditPage - 1}" ${auditPage <= 1 ? 'disabled' : ''}>Prev</button>`;
       for (let i = Math.max(1, auditPage - 2); i <= Math.min(totalPages, auditPage + 2); i++) {
-        pagHtml += `<button class="btn btn-sm ${i === auditPage ? 'btn-primary' : 'btn-outline'}" onclick="goAuditPage(${i})">${i}</button>`;
+        pagHtml += `<button class="btn btn-sm ${i === auditPage ? 'btn-primary' : 'btn-outline'}" data-click-action="goAuditPage" data-action-arg="${i}">${i}</button>`;
       }
-      pagHtml += `<button class="btn btn-sm btn-outline" onclick="goAuditPage(${auditPage + 1})" ${auditPage >= totalPages ? 'disabled' : ''}>Next</button>`;
+      pagHtml += `<button class="btn btn-sm btn-outline" data-click-action="goAuditPage" data-action-arg="${auditPage + 1}" ${auditPage >= totalPages ? 'disabled' : ''}>Next</button>`;
     }
     document.getElementById('auditPagination').innerHTML = pagHtml;
   } catch (err) {

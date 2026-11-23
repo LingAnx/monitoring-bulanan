@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../db/database');
 const { toCSV } = require('../lib/csv');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 // GET /api/rekap/summary - Dashboard summary
 router.get('/summary', authenticateToken, async (req, res) => {
@@ -69,7 +70,7 @@ router.get('/summary', authenticateToken, async (req, res) => {
 
     res.json({ success: true, data: summary });
   } catch (error) {
-    console.error('Error fetching rekap:', error);
+    logger.error('Error fetching rekap', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat rekap' });
   }
 });
@@ -118,7 +119,7 @@ router.get('/export', authenticateToken, async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename=rekap_laporan.csv');
     res.send(csv);
   } catch (error) {
-    console.error('Error exporting:', error);
+    logger.error('Error exporting', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal export' });
   }
 });
@@ -219,7 +220,7 @@ router.get('/export-pdf', authenticateToken, async (req, res) => {
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   } catch (error) {
-    console.error('Error exporting PDF:', error);
+    logger.error('Error exporting PDF', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal export PDF' });
   }
 });

@@ -105,6 +105,68 @@ function showNotification(msg, type = 'info') {
   setTimeout(() => toast.remove(), 4000);
 }
 
+// CSP-safe compatibility bridge for legacy static controls. Only explicitly
+// allowlisted page functions can be called; no eval or inline handlers are used.
+const CSP_ACTIONS = new Set([
+  'addActivityRow', 'closeConfirmModal', 'closeDetailModal', 'closeModal',
+  'closePeriodeModal', 'closeResetModal', 'closeSeksiModal', 'closeSendModal',
+  'closeUserModal', 'createBackup', 'exportCSV', 'exportPDF', 'exportReports',
+  'exportUsers', 'handleLampiranChange', 'loadAllReports', 'loadArchive',
+  'loadAudit', 'loadDashboardData', 'loadHistory', 'loadMonitoring',
+  'loadNotifications', 'loadPendingApprovals', 'markAllRead', 'resetPassword',
+  'saveDraft', 'savePeriode', 'saveSeksi', 'saveUser', 'sendNotification',
+  'showPeriodeModal', 'showSeksiModal', 'showSendModal', 'showUserModal',
+  'switchTab', 'changePage', 'deleteLaporan', 'deleteNotif', 'downloadReport',
+  'editLaporan', 'goAuditPage', 'markRead', 'processApproval',
+  'removeActivityRow', 'removeLampiran', 'saveSettings', 'showApproveModal',
+  'showDetail', 'showReportDetail', 'updateProfile', 'viewReportDetail',
+  'viewSectionDetail'
+]);
+
+function dispatchCspAction(event) {
+  const navigationTarget = event.target.closest('[data-navigate], [data-reload]');
+  if (navigationTarget && event.type === 'click') {
+    if (navigationTarget.dataset.reload === 'true') {
+      window.location.reload();
+      return;
+    }
+    const targetPath = navigationTarget.dataset.navigate || '';
+    if (/^\/[a-zA-Z0-9/_?=&.-]*$/.test(targetPath)) {
+      window.location.href = targetPath;
+    }
+    return;
+  }
+
+  const target = event.target.closest(`[data-${event.type}-action]`);
+  if (!target) return;
+
+  const action = target.dataset[`${event.type}Action`];
+  if (!CSP_ACTIONS.has(action) || typeof window[action] !== 'function') {
+    console.error('Blocked unknown CSP action:', action);
+    showNotification('Aksi tidak tersedia. Silakan muat ulang halaman.', 'error');
+    return;
+  }
+
+  if (event.type === 'submit') event.preventDefault();
+
+  const args = [];
+  if (target.dataset.actionEvent === 'true') args.push(event);
+  if (Object.prototype.hasOwnProperty.call(target.dataset, 'actionArg')) {
+    args.push(target.dataset.actionArg);
+  }
+  if (Object.prototype.hasOwnProperty.call(target.dataset, 'actionArg2')) {
+    args.push(target.dataset.actionArg2);
+  }
+  if (target.dataset.actionSelf === 'true') args.push(target);
+  if (target.dataset.stopPropagation === 'true') event.stopPropagation();
+
+  window[action](...args);
+}
+
+document.addEventListener('click', dispatchCspAction);
+document.addEventListener('change', dispatchCspAction);
+document.addEventListener('submit', dispatchCspAction);
+
 // ── Fetch with timeout and retry ─────────────────────
 async function apiFetch(url, options = {}, config = {}) {
   const { timeout = API_TIMEOUT, retries = MAX_RETRIES } = config;
@@ -134,12 +196,15 @@ async function apiFetch(url, options = {}, config = {}) {
 
       clearTimeout(timeoutId);
 
-      let data;
+      const hasEmptyBody = res.status === 204 || res.headers.get('content-length') === '0';
+      let data = {};
 
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
+      if (!hasEmptyBody) {
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
       }
 
       if (res.status === 401) {
@@ -157,6 +222,10 @@ async function apiFetch(url, options = {}, config = {}) {
 
         error.status = res.status;
         throw error;
+      }
+
+      if (hasEmptyBody) {
+        return { success: true, status: res.status };
       }
 
       return data;
@@ -201,8 +270,10 @@ async function apiFetch(url, options = {}, config = {}) {
   throw lastError;
 }
 // ── Global error boundary ────────────────────────────
+// CSP compliance: jangan pernah menampilkan pesan error mentah ke UI
+// (message bisa memuat payload DB/stack). Log ke console saja.
 window.addEventListener('error', (e) => {
-  console.error('Global error:', e.error);
+  console.error('Global error:', e.error || e.message);
   showNotification('Terjadi kesalahan. Silakan refresh halaman.', 'error');
 });
 

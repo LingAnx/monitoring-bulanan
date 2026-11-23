@@ -98,8 +98,8 @@ window.loadPendingApprovals = async function() {
           <br><span class="status-badge-simple status-diteruskan">Menunggu Persetujuan</span>
         </div>
         <div class="pending-actions">
-          <button type="button" class="btn btn-sm btn-outline" onclick="viewReportDetail(${r.id})">Lihat</button>
-          <button type="button" class="btn btn-sm btn-primary" onclick="showApproveModal(${r.id})">Tinjau →</button>
+          <button type="button" class="btn btn-sm btn-outline" data-click-action="viewReportDetail" data-action-arg="${r.id}">Lihat</button>
+          <button type="button" class="btn btn-sm btn-primary" data-click-action="showApproveModal" data-action-arg="${r.id}">Tinjau →</button>
         </div>
       </div>
     `).join('');
@@ -146,7 +146,7 @@ window.loadAllReports = async function() {
               <td>${escapeHtml(r.judul.substring(0, 40))}${r.judul.length > 40 ? '...' : ''}</td>
               <td>${formatMonthYear(r.bulan, r.tahun)}</td>
               <td><span class="${statusBadgeClass(r.status)}">${escapeHtmlText(statusLabel(r.status))}</span></td>
-              <td><button type="button" class="btn btn-sm btn-outline" onclick="viewReportDetail(${r.id})">Detail</button></td>
+              <td><button type="button" class="btn btn-sm btn-outline" data-click-action="viewReportDetail" data-action-arg="${r.id}">Detail</button></td>
             </tr>
           `).join('')}
         </tbody>
@@ -405,11 +405,11 @@ window.viewReportDetail = async function(id) {
 
   if (canAct) {
     document.getElementById('modalFooter').innerHTML = `
-      <button type="button" class="btn btn-danger" onclick="processApproval(${r.id}, 'revisi_kantor')">Minta Revisi</button>
-      <button type="button" class="btn btn-success" onclick="processApproval(${r.id}, 'disetujui')">Setujui Laporan</button>
+      <button type="button" class="btn btn-danger" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg-2="revisi_kantor">Minta Revisi</button>
+      <button type="button" class="btn btn-success" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg-2="disetujui">Setujui Laporan</button>
     `;
   } else {
-    document.getElementById('modalFooter').innerHTML = '<button type="button" class="btn btn-outline" onclick="closeModal()">Tutup</button>';
+    document.getElementById('modalFooter').innerHTML = '<button type="button" class="btn btn-outline" data-click-action="closeModal">Tutup</button>';
   }
 
   document.getElementById('detailModal').classList.add('active');
@@ -436,7 +436,7 @@ window.processApproval = async function(id, status) {
 
   showConfirmModal(title, msg, async () => {
     try {
-      const result = await apiFetch(`/api/laporan/${id}/approve`, {
+      const result = await apiFetch(`/api/kepala/reports/${id}/approve`, {
         method: 'POST',
         body: JSON.stringify({ status, catatan })
       }); 
