@@ -8,9 +8,16 @@ const pageSize = 10;
 let allReports = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('PEGAWAI');
   const authenticated = await initAuth();
   if (!authenticated) return;
+
+  let userRole = null;
+  try { userRole = requireRole('PEGAWAI'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
+    return;
+  }
 
   initEmployeePage('Laporan Saya');
 
@@ -35,7 +42,7 @@ async function loadNotifications() {
       const dot = document.getElementById('notifDot');
 
       if (dot) {
-        dot.classList.toggle('hidden, count === 0');
+        dot.classList.toggle('hidden', count === 0);
       }
     }
   } catch (err) {
@@ -114,13 +121,13 @@ function renderLaporan(reports) {
           <tr>
             <td>${(currentPage - 1) * pageSize + i + 1}</td>
             <td>${formatDate(r.created_at)}</td>
-            <td>${getMonthName(r.bulan)} ${r.tahun}</td>
-            <td>${r.judul}</td>
+            <td>${escapeHtmlText(getMonthName(r.bulan))} ${r.tahun}</td>
+            <td>${escapeHtmlText(r.judul)}</td>
             <td>${getStatusLabel(r.status)}</td>
             <td>
-              <button type="button" class="btn btn-sm btn-primary" onclick="showDetail(${r.id})">👁️ Detail</button>
-              ${canEdit(r.status) ? `<button type="button" class="btn btn-sm btn-warning" onclick="editLaporan(${r.id})">✏️ Edit</button>` : ''}
-              ${r.status === 'draft' ? `<button type="button" class="btn btn-sm btn-danger" onclick="deleteLaporan(${r.id})">🗑️</button>` : ''}
+              <button type="button" class="btn btn-sm btn-primary" data-click-action="showDetail" data-action-arg="${r.id}"><span class="icon icon-search"></span> Detail</button>
+              ${canEdit(r.status) ? `<button type="button" class="btn btn-sm btn-warning" data-click-action="editLaporan" data-action-arg="${r.id}"><span class="icon icon-edit"></span> Edit</button>` : ''}
+              ${r.status === 'draft' ? `<button type="button" class="btn btn-sm btn-danger" data-click-action="deleteLaporan" data-action-arg="${r.id}"><span class="icon icon-trash"></span></button>` : ''}
             </td>
           </tr>
         `).join('')}
@@ -142,17 +149,17 @@ function renderPagination(pagination) {
   }
 
   let html = `<div class="pagination-info">Menampilkan ${totalItems} data - Halaman ${cp}/${totalPages}</div><div class="pagination-buttons">`;
-  html += `<button type="button" class="btn btn-sm ${cp === 1 ? 'disabled' : ''}" ${cp === 1 ? 'disabled' : ''} onclick="changePage(${cp - 1})">Prev</button>`;
+  html += `<button type="button" class="btn btn-sm ${cp === 1 ? 'disabled' : ''}" ${cp === 1 ? 'disabled' : ''} data-click-action="changePage" data-action-arg="${cp - 1}">Prev</button>`;
 
   for (let i = 1; i <= totalPages; i++) {
     if (i === 1 || i === totalPages || (i >= cp - 1 && i <= cp + 1)) {
-      html += `<button type="button" class="btn btn-sm ${i === cp ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+      html += `<button type="button" class="btn btn-sm ${i === cp ? 'active' : ''}" data-click-action="changePage" data-action-arg="${i}">${i}</button>`;
     } else if (i === cp - 2 || i === cp + 2) {
       html += `<span>...</span>`;
     }
   }
 
-  html += `<button type="button" class="btn btn-sm ${cp === totalPages ? 'disabled' : ''}" ${cp === totalPages ? 'disabled' : ''} onclick="changePage(${cp + 1})">Next</button>`;
+  html += `<button type="button" class="btn btn-sm ${cp === totalPages ? 'disabled' : ''}" ${cp === totalPages ? 'disabled' : ''} data-click-action="changePage" data-action-arg="${cp + 1}">Next</button>`;
   html += `</div>`;
   container.innerHTML = html;
 }
@@ -164,15 +171,8 @@ function changePage(page) {
 }
 
 function getStatusLabel(status) {
-  const map = {
-    'draft': '<span class="status-badge status-draft">Draft</span>',
-    'diajukan': '<span class="status-badge status-diajukan">Diajukan</span>',
-    'diteruskan': '<span class="status-badge status-diteruskan">Diteruskan</span>',
-    'disetujui': '<span class="status-badge status-disetujui">Disetujui</span>',
-    'revisi_admin': '<span class="status-badge status-revisi">Revisi Admin</span>',
-    'revisi_kantor': '<span class="status-badge status-revisi">Revisi Kantor</span>'
-  };
-  return map[status] || status;
+  // Gunakan allowlist statusClass + statusLabel global; render teks aman
+  return `<span class="status-badge ${statusClass(status)}">${escapeHtmlText(statusLabel(status))}</span>`;
 }
 
 function getMonthName(month) {
@@ -181,7 +181,7 @@ function getMonthName(month) {
 }
 
 function canEdit(status) {
-  return ['draft', 'diajukan', 'revisi_admin', 'revisi_kantor'].includes(status);
+  return ['draft', 'revisi_admin', 'revisi_kantor'].includes(status);
 }
 
 function showDetail(id) {
@@ -250,12 +250,15 @@ function exportCSV(event) {
     formatDate(r.created_at),
     getMonthName(r.bulan),
     r.tahun,
-    `"${r.judul.replace(/"/g, '""')}"`,
-    `"${(r.isi || '').replace(/"/g, '""')}"`,
+    r.judul,
+    r.isi || '',
     r.status
   ]);
 
-  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const csv = [
+    headers.map(h => escapeCsvCell(h)).join(','),
+    ...rows.map(row => row.map(c => escapeCsvCell(c)).join(','))
+  ].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);

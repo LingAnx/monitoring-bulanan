@@ -11,7 +11,15 @@ Berdasarkan audit kode, terdapat 6 kategori masalah stabilitas yang perlu ditang
 ### 1.1 JWT Secret Hardcoded
 **File**: `backend/middleware/auth.js:4`
 ```javascript
+// [DIKOREKSI] Kode lama (sebelum perbaiki — HINA SALIN-INI KE PRODUCTION):
 const JWT_SECRET = process.env.JWT_SECRET || 'ksop-secret-key-change-in-production';
+
+// Kode sekarang (sesudah perbaiki — fail-fast, tanpa fallback):
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  console.error('FATAL: JWT_SECRET wajib diset (min. 32 karakter), tanpa fallback.');
+  process.exit(1);
+}
 ```
 **Masalah**: Secret default mudah ditebak, semua token bisa diforgery.
 

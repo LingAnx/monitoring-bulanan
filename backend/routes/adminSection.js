@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/database');
 const { authenticateToken } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 // GET /api/admin-section/dashboard - Full dashboard data for admin_seksi
 router.get('/dashboard', authenticateToken, async (req, res) => {
@@ -43,15 +44,25 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
     const period = periodResult.rows[0] || null;
 
     // ── Completion rate for current period (section only) ──
-    const totalForPeriod = await pool.query(
-      `SELECT COUNT(*) as cnt FROM laporan l JOIN users u ON l.id_user = u.id WHERE u.id_seksi = $1 AND l.bulan = $2 AND l.tahun = $3 AND l.status != 'draft'`,
+    // NUMERATOR dan DENOMINATOR harus memakai seksi + bulan + tahun
+    // yang SAMA (periode aktif), dan "selesai" didefinisikan secara
+    // eksplisit: status 'disetujui' ATAU 'diteruskan'.
+    // Draft/diajukan/revisi dihitung belum selesai (masih masuk
+    // denominator). Satu query conditional aggregation — tanpa N+1.
+    const compRes = await pool.query(
+      `SELECT
+         COUNT(*) FILTER (WHERE l.status IN ('disetujui', 'diteruskan')) AS done,
+         COUNT(*) FILTER (WHERE l.status IN ('draft', 'diajukan', 'revisi_admin', 'revisi_kantor', 'disetujui', 'diteruskan')) AS total
+       FROM laporan l
+       JOIN users u ON u.id = l.id_user
+       WHERE u.id_seksi = $1 AND l.bulan = $2 AND l.tahun = $3`,
       [sekId, month, year]
     );
-    const totalForPeriodCount = parseInt(totalForPeriod.rows[0].cnt) || 0;
-    const approvedCountCount = parseInt(approvedCount.rows[0].cnt) || 0;
-    const verifiedCountCount = parseInt(verifiedCount.rows[0].cnt) || 0;
+    const totalForPeriodCount = parseInt(compRes.rows[0].total, 10) || 0;
+    const completedCount = parseInt(compRes.rows[0].done, 10) || 0;
+    // Pastikan hasil selalu dalam rentang 0–100.
     const completionRate = totalForPeriodCount > 0
-      ? Math.round((approvedCountCount + verifiedCountCount) / totalForPeriodCount * 100)
+      ? Math.min(100, Math.max(0, Math.round((completedCount / totalForPeriodCount) * 100)))
       : 0;
 
     // ── Deadline info ──
@@ -108,7 +119,7 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
       notifications: notifications.rows
     });
   } catch (error) {
-    console.error('Error fetching admin-section dashboard:', error);
+    logger.error('Error fetching admin-section dashboard', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat dashboard' });
   }
 });

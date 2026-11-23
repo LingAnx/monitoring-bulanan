@@ -20,13 +20,13 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-icon">&#9733;</div>
+          <div class="logo-icon"><span class="icon icon-star" aria-hidden="true"></span></div>
           <div class="logo-text">
             <span class="logo-title">KSOP</span>
             <span class="logo-subtitle">Cirebon</span>
           </div>
         </div>
-        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
       </div>
       <nav class="sidebar-nav" id="sidebarNav"></nav>
       <div class="sidebar-footer"></div>
@@ -37,7 +37,7 @@
       <!-- Topbar -->
       <header class="topbar">
         <div class="topbar-left">
-          <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
+          <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
           <div class="topbar-title-wrap">
             <span class="topbar-page-title" id="pageTitle">Dashboard</span>
             <div class="topbar-meta">
@@ -52,7 +52,7 @@
             <strong id="activePeriod">-</strong>
           </div>
           <a href="/head-office/notifikasi.html" class="notif-btn" id="notifBtn" aria-label="Notifikasi">
-            &#128276;
+            <span class="icon icon-bell" aria-hidden="true"></span>
             <span class="notif-badge hidden" id="notifBadge">0</span>
           </a>
           <div class="profile-wrap" id="profileWrap">
@@ -114,7 +114,7 @@
           <!-- 2. Summary Statistics -->
           <div class="ho-stats-grid" id="hoStatsGrid">
             <a href="/head-office/persetujuan.html?tab=pending" class="ho-stat-card ho-stat-pending" tabindex="0">
-              <div class="ho-stat-icon">⏳</div>
+              <div class="ho-stat-icon"><span class="icon icon-hourglass" aria-hidden="true"></span></div>
               <div class="ho-stat-info">
                 <div class="ho-stat-value" id="statPending">0</div>
                 <div class="ho-stat-label">Menunggu Persetujuan</div>
@@ -123,7 +123,7 @@
               <span class="ho-stat-arrow">→</span>
             </a>
             <a href="/head-office/persetujuan.html?tab=history" class="ho-stat-card ho-stat-approved" tabindex="0">
-              <div class="ho-stat-icon">✅</div>
+              <div class="ho-stat-icon"><span class="icon icon-check" aria-hidden="true"></span></div>
               <div class="ho-stat-info">
                 <div class="ho-stat-value" id="statApproved">0</div>
                 <div class="ho-stat-label">Disetujui</div>
@@ -132,7 +132,7 @@
               <span class="ho-stat-arrow">→</span>
             </a>
             <a href="/head-office/persetujuan.html?tab=pending&show=revisi" class="ho-stat-card ho-stat-revision" tabindex="0">
-              <div class="ho-stat-icon">⚠️</div>
+              <div class="ho-stat-icon"><span class="icon icon-warning" aria-hidden="true"></span></div>
               <div class="ho-stat-info">
                 <div class="ho-stat-value" id="statRevision">0</div>
                 <div class="ho-stat-label">Perlu Revisi</div>
@@ -141,7 +141,7 @@
               <span class="ho-stat-arrow">→</span>
             </a>
             <a href="/head-office/persetujuan.html?tab=monitoring" class="ho-stat-card ho-stat-notsub" tabindex="0">
-              <div class="ho-stat-icon">👥</div>
+              <div class="ho-stat-icon"><span class="icon icon-users" aria-hidden="true"></span></div>
               <div class="ho-stat-info">
                 <div class="ho-stat-value" id="statNotSubmitted">0</div>
                 <div class="ho-stat-label">Belum Mengirim</div>
@@ -150,7 +150,7 @@
               <span class="ho-stat-arrow">→</span>
             </a>
             <a href="/head-office/persetujuan.html?tab=reports" class="ho-stat-card ho-stat-total" tabindex="0">
-              <div class="ho-stat-icon">📄</div>
+              <div class="ho-stat-icon"><span class="icon icon-doc" aria-hidden="true"></span></div>
               <div class="ho-stat-info">
                 <div class="ho-stat-value" id="statTotal">0</div>
                 <div class="ho-stat-label">Total Laporan</div>
@@ -168,7 +168,7 @@
             <!-- Left: Pending Approvals -->
             <div class="ho-card">
               <div class="card-header">
-                <h3 class="card-title">📋 Laporan Menunggu Persetujuan</h3>
+                <h3 class="card-title"><span class="icon icon-clipboard" aria-hidden="true"></span> Laporan Menunggu Persetujuan</h3>
                 <a href="/head-office/persetujuan.html?tab=pending" class="btn-sm">Lihat Semua →</a>
               </div>
               <div id="pendingApprovalList">
@@ -179,7 +179,7 @@
             <!-- Right: Office Progress -->
             <div class="ho-card">
               <div class="card-header">
-                <h3 class="card-title">📊 Progress Laporan Kantor</h3>
+                <h3 class="card-title"><span class="icon icon-chart" aria-hidden="true"></span> Progress Laporan Kantor</h3>
                 <a href="/head-office/persetujuan.html?tab=monitoring" class="btn-sm">Detail →</a>
               </div>
               <div id="officeProgressCard">
@@ -193,7 +193,7 @@
             <!-- Left: Section Monitoring -->
             <div class="ho-card">
               <div class="card-header">
-                <h3 class="card-title">👁️ Monitoring Per Seksi</h3>
+                <h3 class="card-title"><span class="icon icon-activity"></span> Monitoring Per Seksi</h3>
                 <a href="/head-office/persetujuan.html?tab=monitoring" class="btn-sm">Semua →</a>
               </div>
               <div id="sectionProgressList">
@@ -204,15 +204,15 @@
             <!-- Right: Status Distribution -->
             <div class="ho-card">
               <div class="card-header">
-                <h3 class="card-title">📈 Distribusi Status Laporan</h3>
+                <h3 class="card-title"><span class="icon icon-trending-up" aria-hidden="true"></span> Distribusi Status Laporan</h3>
                 <div class="filter-bar">
-                  <select id="chartFilterBulan" onchange="loadDashboardData()" class="filter-select" title="Filter bulan">
+                  <select id="chartFilterBulan" data-change-action="loadDashboardData" class="filter-select" title="Filter bulan">
                     <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
                     <option value="4">Apr</option><option value="5">Mei</option><option value="6">Jun</option>
                     <option value="7">Jul</option><option value="8" selected>Agus</option>
                     <option value="9">Sep</option><option value="10">Okt</option><option value="11">Nov</option><option value="12">Des</option>
                   </select>
-                  <select id="chartFilterTahun" onchange="loadDashboardData()" class="filter-select" title="Filter tahun">
+                  <select id="chartFilterTahun" data-change-action="loadDashboardData" class="filter-select" title="Filter tahun">
                     <option value="2026" selected>2026</option><option value="2025">2025</option>
                   </select>
                 </div>
@@ -230,28 +230,28 @@
             </div>
             <div class="quick-actions-grid">
               <a href="/head-office/persetujuan.html?tab=pending" class="qa-item">
-                <div class="qa-icon blue">✅</div>
+                <div class="qa-icon blue"><span class="icon icon-check" aria-hidden="true"></span></div>
                 <div>
                   <div class="qa-title">Persetujuan Laporan</div>
                   <div class="qa-desc" id="qaPendingDesc">0 Menunggu</div>
                 </div>
               </a>
               <a href="/head-office/persetujuan.html?tab=monitoring" class="qa-item">
-                <div class="qa-icon green">📊</div>
+                <div class="qa-icon green"><span class="icon icon-chart" aria-hidden="true"></span></div>
                 <div>
                   <div class="qa-title">Monitoring Seksi</div>
                   <div class="qa-desc">Lihat Progress</div>
                 </div>
               </a>
               <a href="/head-office/persetujuan.html?tab=reports" class="qa-item">
-                <div class="qa-icon teal">📄</div>
+                <div class="qa-icon teal"><span class="icon icon-doc" aria-hidden="true"></span></div>
                 <div>
                   <div class="qa-title">Semua Laporan</div>
                   <div class="qa-desc">Cari Laporan</div>
                 </div>
               </a>
               <a href="/head-office/persetujuan.html?tab=reports" class="qa-item">
-                <div class="qa-icon orange">📈</div>
+                <div class="qa-icon orange"><span class="icon icon-trending-up" aria-hidden="true"></span></div>
                 <div>
                   <div class="qa-title">Rekap</div>
                   <div class="qa-desc">Laporan Kantor</div>
@@ -290,7 +290,7 @@
             <!-- Right: Recent Activity -->
             <div class="ho-card">
               <div class="card-header">
-                <h3 class="card-title">📝 Aktivitas Terbaru</h3>
+                <h3 class="card-title"><span class="icon icon-history"></span> Aktivitas Terbaru</h3>
                 <a href="/head-office/notifikasi.html" class="btn-sm">Lihat Semua →</a>
               </div>
               <div class="activity-timeline" id="activityTimeline">
@@ -302,6 +302,10 @@
         </div><!-- /dashboardContent -->
       </main>
     </div><!-- /headoffice-content -->
+
+    <!-- Sidebar Overlay (di dalam root .headoffice-layout agar CSS
+         ter-scoped .headoffice-layout .sidebar-overlay menjangkau) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
   </div><!-- /headoffice-layout -->
 
   <!-- Approval Detail Modal -->
@@ -309,7 +313,7 @@
     <div class="modal modal-lg">
       <div class="modal-header">
         <h3 class="modal-title" id="modalTitle">Detail Laporan</h3>
-        <button type="button" class="modal-close" onclick="closeDetailModal()">&times;</button>
+        <button type="button" class="modal-close" data-click-action="closeDetailModal">&times;</button>
       </div>
       <div class="modal-body" id="modalBody"></div>
       <div class="modal-footer" id="modalFooter"></div>
@@ -321,27 +325,26 @@
     <div class="modal modal-sm">
       <div class="modal-header">
         <h3 class="modal-title" id="confirmTitle">Konfirmasi</h3>
-        <button type="button" class="modal-close" onclick="closeConfirmModal()">&times;</button>
+        <button type="button" class="modal-close" data-click-action="closeConfirmModal">&times;</button>
       </div>
       <div class="modal-body">
         <p id="confirmMessage"></p>
         <div id="confirmExtra" class="mt-3"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline" onclick="closeConfirmModal()">Batal</button>
+        <button type="button" class="btn btn-outline" data-click-action="closeConfirmModal">Batal</button>
         <button type="button" class="btn btn-danger" id="confirmActionBtn">Konfirmasi</button>
       </div>
     </div>
   </div>
 
-  <!-- Sidebar Overlay -->
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
-  <script src="/js/navigation/head-office-navigation.js"></script>
-  <script src="/js/layouts/head-office-layout.js"></script>
-  <script src="/app.js"></script>
+  <script src="/js/layout-shared.js"></script>
+  <script src="/js/navigation/head-office-navigation.js?v=2"></script>
+  <script src="/js/layouts/head-office-layout.js?v=2"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/translations.js"></script>
   <script src="/head-office/_layout.js"></script>
   <script src="/head-office/dashboard.js?v=3"></script>

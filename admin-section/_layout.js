@@ -11,7 +11,20 @@
     if (titleEl) titleEl.textContent = pageTitle || 'Dashboard';
 
     if (window.AdminSectionLayout) {
-      AdminSectionLayout.init(pageTitle);
+      // API eksplisit: pisahkan pageTitle dari activeId.
+      // activeId disorot dari URL + query parameter via getActivePage()
+      // (di dalam layout) — sehingga menu yang benar tersorot untuk
+      // Dashboard, Diajukan, Diteruskan, Revisi, Semua Laporan, Pegawai,
+      // Rekap, Notifikasi, dan Profil.
+      AdminSectionLayout.init({
+        pageTitle: pageTitle,
+        activeId: (window.AdminSectionNav && window.AdminSectionNav.getActivePage)
+          ? window.AdminSectionNav.getActivePage(
+              window.location.pathname,
+              new URLSearchParams(window.location.search)
+            )
+          : undefined
+      });
     }
 
     if (window.AdminSectionLayout) {

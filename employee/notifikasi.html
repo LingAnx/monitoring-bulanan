@@ -6,40 +6,40 @@
   <title>Notifikasi - KSOP</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/laporan.css?v=4">
   <link rel="stylesheet" href="/notifikasi.css">
-  
 </head>
 <body>
-  <div class="layout admin-section-layout" id="layout">
-    <!-- Sidebar (managed by admin-section-layout.js) -->
+  <div class="layout" id="layout">
+    <!-- Sidebar (managed by employee-layout.js) -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-icon">&#9733;</div>
+          <div class="logo-icon"><span class="icon icon-star" aria-hidden="true"></span></div>
           <div class="logo-text">
-            <span class="logo-title">KSOP</span>
+            <span class="logo-title">KSOP Kelas II</span>
             <span class="logo-subtitle">Cirebon</span>
           </div>
         </div>
-        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
       </div>
       <nav class="sidebar-nav" id="sidebarNav"></nav>
       <div class="sidebar-footer"></div>
     </aside>
 
     <!-- Main Area -->
-    <div class="main-area admin-section-content" id="mainArea">
+    <div class="main-area" id="mainArea">
       <!-- Topbar (managed by admin-section-layout.js) -->
       <header class="topbar" id="topbar"></header>
 
       <!-- Content -->
-      <main class="admin-content notif-main">
+      <main class="main-content notif-main">
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">Notifikasi</h3>
             <div class="notif-actions">
-              <button type="button" class="btn btn-outline btn-sm" id="markAllReadBtn" onclick="markAllRead()">Tandai Semua Dibaca</button>
-              <button type="button" class="btn btn-outline btn-sm" onclick="loadNotifications()">↻ Refresh</button>
+              <button type="button" class="btn btn-outline btn-sm" id="markAllReadBtn" data-click-action="markAllRead">Tandai Semua Dibaca</button>
+              <button type="button" class="btn btn-outline btn-sm" data-click-action="loadNotifications">↻ Refresh</button>
             </div>
           </div>
           <div id="notifContent">
@@ -55,9 +55,11 @@
 
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
-  <script src="/js/navigation/employee-navigation.js"></script>
-  <script src="/js/layouts/employee-layout.js"></script>
-  <script src="/app.js"></script>
+      <script src="/js/layout-shared.js"></script>
+  <script src="/js/navigation/employee-navigation.js?v=2"></script>
+  <script src="/js/layouts/employee-layout.js?v=2"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/translations.js"></script>
   <script src="/employee/_layout.js"></script>
   <script src="/employee/notifikasi.js?v=4"></script>

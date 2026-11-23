@@ -1,22 +1,18 @@
 /*
  * Admin Section Shared Layout Styles
  * Common CSS for all ADMIN_SEKSI pages.
- * Must be included alongside style.css and dashboard.css.
+ * Design tokens live in style.css :root (single source of truth).
+ * This file keeps only ADMIN-seksi-specific layout overrides.
  */
 
-/* ── Layout Tokens ── */
+/* ── Admin-Section Specific Layout Tokens ──
+   Shared tokens (--space-*, --card-radius, --card-border) are now
+   global in style.css :root. Only admin-section-specific values below. */
 :root {
   --admin-sidebar-width: 240px;
   --admin-topbar-height: 64px;
   --page-bg: #f5f7fb;
   --content-max-width: 1200px;
-  --card-radius: 12px;
-  --card-border: #e5e7eb;
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
 }
 
 /* ── Admin Section Container ── */
@@ -144,21 +140,94 @@
   text-align: center;
 }
 
-.logout-btn {
-  background: none;
-  border: 1px solid var(--gray-300);
-  padding: 6px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-family: inherit;
-  color: var(--gray-700);
-  transition: all 0.2s;
+/* ── Profile Dropdown ── */
+.profile-wrap {
+  position: relative;
 }
 
-.logout-btn:hover {
+.profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.profile-trigger:hover {
   background: var(--gray-100);
-  border-color: var(--gray-400);
+}
+
+.profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.profile-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--gray-700);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 190px;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+  z-index: 1000;
+}
+
+.profile-dropdown.hidden {
+  display: none;
+}
+
+.profile-dropdown li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.profile-dropdown a {
+  display: block;
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--gray-700);
+  font-size: 0.88rem;
+  transition: background 0.15s;
+}
+
+.profile-dropdown a:hover {
+  background: var(--gray-100);
+  color: var(--primary);
+}
+
+/* ── Topbar Right Layout ── */
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 /* ── Page Content Wrapper ── */

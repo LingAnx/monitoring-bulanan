@@ -8,18 +8,18 @@
 
   try { window.AdminSectionNav = {
     MENU: [
-      { id: 'beranda',   label: 'Dashboard',      href: '/admin-section/dashboard.html', icon: '&#9733;' },
+      { id: 'beranda',   label: 'Dashboard',      href: '/admin-section/dashboard.html', icon: 'star' },
       { group: 'VERIFIKASI' },
-      { id: 'diajukan',  label: 'Diajukan',       href: '/admin-section/laporan.html?status=diajukan', icon: '&#128203;' },
-      { id: 'diteruskan',label: 'Diteruskan',     href: '/admin-section/laporan.html?status=diteruskan', icon: '&#9989;' },
-      { id: 'revisi',    label: 'Revisi',         href: '/admin-section/laporan.html?status=revisi_admin', icon: '&#9888;' },
+      { id: 'diajukan',  label: 'Diajukan',       href: '/admin-section/laporan.html?status=diajukan', icon: 'clipboard' },
+      { id: 'diteruskan',label: 'Diteruskan',     href: '/admin-section/laporan.html?status=diteruskan', icon: 'check' },
+      { id: 'revisi',    label: 'Revisi',         href: '/admin-section/laporan.html?status=revisi_admin', icon: 'warning' },
       { group: 'MANAJEMEN' },
-      { id: 'laporan',   label: 'Semua Laporan',  href: '/admin-section/laporan.html', icon: '&#128196;' },
-      { id: 'pegawai',   label: 'Data Pegawai',   href: '/admin-section/pegawai.html', icon: '&#128104;&#65039;' },
+      { id: 'laporan',   label: 'Semua Laporan',  href: '/admin-section/laporan.html', icon: 'doc' },
+      { id: 'pegawai',   label: 'Data Pegawai',   href: '/admin-section/pegawai.html', icon: 'users' },
       { group: 'LAINNYA' },
-      { id: 'rekap',     label: 'Rekap Laporan',  href: '/admin-section/rekap.html', icon: '&#128200;' },
-      { id: 'notif',     label: 'Notifikasi',     href: '/admin-section/notifikasi.html', icon: '&#128276;', badgeId: 'sidebarNotifBadge' },
-      { id: 'profil',    label: 'Profil Saya',    href: '/admin-section/profil.html', icon: '&#9825;' }
+      { id: 'rekap',     label: 'Rekap Laporan',  href: '/admin-section/rekap.html', icon: 'chart' },
+      { id: 'notif',     label: 'Notifikasi',     href: '/admin-section/notifikasi.html', icon: 'bell', badgeId: 'sidebarNotifBadge' },
+      { id: 'profil',    label: 'Profil Saya',    href: '/admin-section/profil.html', icon: 'user' }
     ],
 
     getActivePage: function (pathname, params) {

@@ -1,11 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Safe accessor when AuthStore may not be loaded yet
-  function _auth(name, val) {
-    try {
-      if (name === 'ROLES') return typeof AuthStore !== 'undefined' ? AuthStore.ROLES : {};
-      return (typeof AuthStore !== 'undefined' && AuthStore[name]) ? AuthStore[name](val) : undefined;
-    } catch (e) { return undefined; }
-  }
+  // _auth is already defined globally in app.js (loaded before this file).
+  // No local redefinition needed.
 
   const token = _auth('getToken');
   if (token) {

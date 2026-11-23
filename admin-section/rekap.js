@@ -4,40 +4,60 @@
 // ══════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole(['ADMIN_SEKSI', 'KEPALA_KANTOR']);
   const authenticated = await initAuth();
   if (!authenticated) return;
 
-  if (!isAdminSeksi() && !isKepala()) {
-    window.location.href = '/admin-section/dashboard.html';
-    return;
+try {
+  requireRole('ADMIN_SEKSI');
+} catch (e) {
+  if (e.message === 'AUTH_REQUIRED') {
+    window.location.href = '/login.html';
+  } else {
+    redirectToDashboard(AuthStore.getRole());
   }
+  return;
+}
 
   initAdminSectionPage('Rekap Laporan');
+
+  // Tombol "Tampilkan" — delegasi via data-action
+  document.getElementById('loadRekapBtn')?.addEventListener('click', loadRekap);
+
+  // Tombol "Export CSV" — satu listener, tanpa inline onclick
+  document.getElementById('exportRekapBtn')?.addEventListener('click', exportRekapCSV);
+
   await loadStats();
   await loadRekap();
 });
 
 async function loadStats() {
   const stats = await apiFetch('/api/rekap/summary');
-  const s = stats.data;
+  const s = stats.data || {};
   const grid = document.getElementById('statsGrid');
 
-  if (isKepala()) {
-    grid.innerHTML = `
-      <div class="stat-card"><div class="stat-value">${s.totalPegawai || 0}</div><div class="stat-label">Total Pegawai</div></div>
-      <div class="stat-card"><div class="stat-value">${s.totalLaporan || 0}</div><div class="stat-label">Total Laporan</div></div>
-      <div class="stat-card yellow"><div class="stat-value">${s.byStatus?.diteruskan || 0}</div><div class="stat-label">Menunggu Persetujuan</div></div>
-      <div class="stat-card green"><div class="stat-value">${s.byStatus?.disetujui || 0}</div><div class="stat-label">Disetujui</div></div>
-    `;
-  } else if (isAdminSeksi()) {
-    grid.innerHTML = `
-      <div class="stat-card"><div class="stat-value">${s.total || 0}</div><div class="stat-label">Total Laporan</div></div>
-      <div class="stat-card yellow"><div class="stat-value">${s.byStatus?.diajukan || 0}</div><div class="stat-label">Menunggu</div></div>
-      <div class="stat-card green"><div class="stat-value">${s.byStatus?.diteruskan || 0}</div><div class="stat-label">Diverifikasi</div></div>
-      <div class="stat-card red"><div class="stat-value">${s.byStatus?.revisi_admin || 0}</div><div class="stat-label">Perlu Revisi</div></div>
-    `;
-  }
+  if (!grid) return;
+
+  grid.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-value">${s.total || 0}</div>
+      <div class="stat-label">Total Laporan</div>
+    </div>
+
+    <div class="stat-card yellow">
+      <div class="stat-value">${s.byStatus?.diajukan || 0}</div>
+      <div class="stat-label">Menunggu</div>
+    </div>
+
+    <div class="stat-card green">
+      <div class="stat-value">${s.byStatus?.diteruskan || 0}</div>
+      <div class="stat-label">Diverifikasi</div>
+    </div>
+
+    <div class="stat-card red">
+      <div class="stat-value">${s.byStatus?.revisi_admin || 0}</div>
+      <div class="stat-label">Perlu Revisi</div>
+    </div>
+  `;
 }
 
 async function loadRekap() {
@@ -74,11 +94,11 @@ async function loadRekap() {
           ${reports.map((r, i) => `
             <tr>
               <td>${i + 1}</td>
-              <td>${r.judul}</td>
-              <td>${r.user_nama}</td>
-              <td>${r.nama_seksi || '-'}</td>
+              <td>${escapeHtmlText(r.judul)}</td>
+              <td>${escapeHtmlText(r.user_nama)}</td>
+              <td>${escapeHtmlText(r.nama_seksi || '-')}</td>
               <td>${formatMonthYear(r.bulan, r.tahun)}</td>
-              <td><span class="badge badge-${r.status}">${statusLabel(r.status)}</span></td>
+              <td><span class="badge ${statusBadgeClass(r.status)}">${escapeHtmlText(statusLabel(r.status))}</span></td>
               <td>${formatDate(r.tanggal_pengajuan)}</td>
             </tr>
           `).join('')}
@@ -90,8 +110,8 @@ async function loadRekap() {
   }
 }
 
-window.exportCSV = function(e) {
-  e.preventDefault();
+// Export CSV Rekap — listener langsung (tanpa inline onclick)
+function exportRekapCSV() {
   const bulan = document.getElementById('filterBulan').value;
   const tahun = document.getElementById('filterTahun').value;
   const params = new URLSearchParams();
@@ -108,4 +128,7 @@ window.exportCSV = function(e) {
       a.click();
     })
     .catch(() => showNotification('Gagal export', 'error'));
-};
+}
+
+// Legacy alias — dipertahankan untuk kompatibilitas; tidak lagi dipakai UI.
+window.exportCSV = function() { exportRekapCSV(); };

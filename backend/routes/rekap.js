@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db/database');
+const { toCSV } = require('../lib/csv');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 // GET /api/rekap/summary - Dashboard summary
 router.get('/summary', authenticateToken, async (req, res) => {
@@ -68,7 +70,7 @@ router.get('/summary', authenticateToken, async (req, res) => {
 
     res.json({ success: true, data: summary });
   } catch (error) {
-    console.error('Error fetching rekap:', error);
+    logger.error('Error fetching rekap', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat rekap' });
   }
 });
@@ -111,19 +113,37 @@ router.get('/export', authenticateToken, async (req, res) => {
       r.capaian || '', r.kendala || '', r.tindak_lanjut || '', r.tanggal_pengajuan || ''
     ]);
 
-    let csv = headers.join(',') + '\n';
-    rows.forEach(row => {
-      csv += row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(',') + '\n';
-    });
+    const csv = toCSV(headers, rows);
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename=rekap_laporan.csv');
     res.send(csv);
   } catch (error) {
-    console.error('Error exporting:', error);
+    logger.error('Error exporting', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal export' });
   }
 });
+
+function escapeHtml(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Allowlist status CSS class — nilai DB mentah tidak pernah masuk ke class.
+var STATUS_CLASS = {
+  draft: 'status-draft',
+  diajukan: 'status-diajukan',
+  diteruskan: 'status-diteruskan',
+  disetujui: 'status-disetujui',
+  revisi_admin: 'status-revisi',
+  revisi_kantor: 'status-revisi'
+};
+function statusClass(status) {
+  return STATUS_CLASS[status] || 'status-draft';
+}
 
 // GET /api/rekap/export-pdf - Export to PDF
 router.get('/export-pdf', authenticateToken, async (req, res) => {
@@ -176,15 +196,15 @@ router.get('/export-pdf', authenticateToken, async (req, res) => {
       <table><thead><tr><th>No</th><th>Pegawai</th><th>NIP</th><th>Seksi</th><th>Bulan</th><th>Tahun</th><th>Status</th><th>Capaian</th><th>Kendala</th><th>Tgl Pengajuan</th><th>Tgl Verifikasi</th></tr></thead><tbody>`;
 
     result.rows.forEach((r, i) => {
-      const cap = (r.capaian || '').substring(0, 60);
-      const kend = (r.kendala || '').substring(0, 40);
+      const cap = escapeHtml((r.capaian || '').substring(0, 60));
+      const kend = escapeHtml((r.kendala || '').substring(0, 40));
       html += `<tr>
         <td>${i + 1}</td>
-        <td>${r.nama_pegawai}</td>
-        <td>${r.nip || '-'}</td>
-        <td>${r.nama_seksi || '-'}</td>
-        <td>${r.bulan}</td><td>${r.tahun}</td>
-        <td class="status-${r.status}">${r.status.replace(/_/g, ' ')}</td>
+        <td>${escapeHtml(r.nama_pegawai)}</td>
+        <td>${escapeHtml(r.nip || '-')}</td>
+        <td>${escapeHtml(r.nama_seksi || '-')}</td>
+        <td>${escapeHtml(r.bulan)}</td><td>${escapeHtml(r.tahun)}</td>
+        <td class="${statusClass(r.status)}">${escapeHtml(r.status.replace(/_/g, ' '))}</td>
         <td>${cap}${(r.capaian || '').length > 60 ? '...' : ''}</td>
         <td>${kend}${(r.kendala || '').length > 40 ? '...' : ''}</td>
         <td>${r.tanggal_pengajuan ? new Date(r.tanggal_pengajuan).toLocaleDateString('id-ID') : '-'}</td>
@@ -200,7 +220,7 @@ router.get('/export-pdf', authenticateToken, async (req, res) => {
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   } catch (error) {
-    console.error('Error exporting PDF:', error);
+    logger.error('Error exporting PDF', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal export PDF' });
   }
 });

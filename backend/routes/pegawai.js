@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 // GET /api/pegawai - List all pegawai in admin's section
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken,requireRole('ADMIN_SEKSI'), async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.id, u.nama, u.nip, u.username, u.role, u.is_active,
@@ -21,13 +22,13 @@ router.get('/', authenticateToken, async (req, res) => {
     );
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching pegawai:', error);
+    logger.error('Error fetching pegawai', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat data pegawai' });
   }
 });
 
 // GET /api/pegawai/deadline - Check deadline compliance per month
-router.get('/deadline', authenticateToken, async (req, res) => {
+router.get('/deadline', authenticateToken, requireRole('ADMIN_SEKSI'),  async (req, res) => {
   try {
     const { bulan, tahun } = req.query;
     const b = bulan ? parseInt(bulan) : new Date().getMonth() + 1;
@@ -54,7 +55,7 @@ router.get('/deadline', authenticateToken, async (req, res) => {
 
     res.json({ success: true, data: result, bulan: b, tahun: t });
   } catch (error) {
-    console.error('Error fetching deadline:', error);
+    logger.error('Error fetching deadline', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat data deadline' });
   }
 });

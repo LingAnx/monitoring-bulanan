@@ -20,13 +20,13 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-icon">&#9733;</div>
+          <div class="logo-icon"><span class="icon icon-star" aria-hidden="true"></span></div>
           <div class="logo-text">
             <span class="logo-title">KSOP</span>
             <span class="logo-subtitle">Cirebon</span>
           </div>
         </div>
-        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
       </div>
       <nav class="sidebar-nav" id="sidebarNav"></nav>
       <div class="sidebar-footer"></div>
@@ -37,7 +37,7 @@
       <!-- Topbar -->
       <header class="topbar">
         <div class="topbar-left">
-          <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
+          <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
           <div class="topbar-title-wrap">
             <span class="topbar-page-title" id="pageTitle">Persetujuan</span>
             <div class="topbar-meta">
@@ -52,8 +52,8 @@
             <strong id="activePeriod">-</strong>
           </div>
           <a href="/head-office/notifikasi.html" class="notif-btn" id="notifBtn" aria-label="Notifikasi">
-            &#128276;
-            <span class="notif-badge hidden" id="notifBadge">0</span>
+          <span class="icon icon-bell" aria-hidden="true"></span>
+          <span class="notif-badge hidden" id="notifBadge">0</span>
           </a>
           <div class="profile-wrap" id="profileWrap">
             <div class="profile-trigger" id="profileTrigger">
@@ -69,11 +69,11 @@
       <main class="admin-content">
         <!-- Tab Navigation -->
         <div class="approve-tabs" id="approveTabs">
-          <button type="button" class="tab-btn active" data-tab="pending" onclick="switchTab('pending')">⏳ Menunggu Persetujuan</button>
-          <button type="button" class="tab-btn" data-tab="reports" onclick="switchTab('reports')">📋 Seluruh Laporan</button>
-          <button type="button" class="tab-btn" data-tab="history" onclick="switchTab('history')">🕐 Riwayat Persetujuan</button>
-          <button type="button" class="tab-btn" data-tab="archive" onclick="switchTab('archive')">📁 Arsip Disetujui</button>
-          <button type="button" class="tab-btn" data-tab="monitoring" onclick="switchTab('monitoring')">👥 Monitoring Seksi</button>
+          <button type="button" class="tab-btn active" data-tab="pending" data-click-action="switchTab" data-action-arg="pending"><span class="icon icon-hourglass" aria-hidden="true"></span> Menunggu Persetujuan</button>
+          <button type="button" class="tab-btn" data-tab="reports" data-click-action="switchTab" data-action-arg="reports"><span class="icon icon-clipboard" aria-hidden="true"></span> Seluruh Laporan</button>
+          <button type="button" class="tab-btn" data-tab="history" data-click-action="switchTab" data-action-arg="history">🕐 Riwayat Persetujuan</button>
+          <button type="button" class="tab-btn" data-tab="archive" data-click-action="switchTab" data-action-arg="archive"><span class="icon icon-archive" aria-hidden="true"></span> Arsip Disetujui</button>
+          <button type="button" class="tab-btn" data-tab="monitoring" data-click-action="switchTab" data-action-arg="monitoring"><span class="icon icon-users" aria-hidden="true"></span> Monitoring Seksi</button>
         </div>
 
         <!-- Tab Contents -->
@@ -82,16 +82,16 @@
             <div class="card-header">
               <h3 class="card-title">Laporan Menunggu Persetujuan</h3>
               <div class="action-buttons">
-                <select id="filterPendingBulan" onchange="loadPendingApprovals()" class="filter-select" title="Filter bulan">
+                <select id="filterPendingBulan" data-change-action="loadPendingApprovals" class="filter-select" title="Filter bulan">
                   <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
                   <option value="4">Apr</option><option value="5">Mei</option><option value="6">Jun</option>
                   <option value="7">Jul</option><option value="8" selected>Agus</option>
                   <option value="9">Sep</option><option value="10">Okt</option><option value="11">Nov</option><option value="12">Des</option>
                 </select>
-                <select id="filterPendingTahun" onchange="loadPendingApprovals()" class="filter-select" title="Filter tahun">
+                <select id="filterPendingTahun" data-change-action="loadPendingApprovals" class="filter-select" title="Filter tahun">
                   <option value="2026" selected>2026</option><option value="2025">2025</option>
                 </select>
-                <button type="button" class="btn btn-outline btn-sm" onclick="loadPendingApprovals()">↻ Refresh</button>
+                <button type="button" class="btn btn-outline btn-sm" data-click-action="loadPendingApprovals">↻ Refresh</button>
               </div>
             </div>
             <div id="approveContent">
@@ -105,7 +105,7 @@
             <div class="card-header">
               <h3 class="card-title">Seluruh Laporan</h3>
               <div class="action-buttons">
-                <select id="filterStatus" onchange="loadAllReports()" class="filter-select" title="Filter status">
+                <select id="filterStatus" data-change-action="loadAllReports" class="filter-select" title="Filter status">
                   <option value="">Semua Status</option>
                   <option value="diajukan">Diajukan</option>
                   <option value="diteruskan">Diteruskan</option>
@@ -113,17 +113,17 @@
                   <option value="revisi_admin">Revisi Admin</option>
                   <option value="revisi_kantor">Revisi Kantor</option>
                 </select>
-                <select id="filterBulanRep" onchange="loadAllReports()" class="filter-select" title="Filter bulan">
+                <select id="filterBulanRep" data-change-action="loadAllReports" class="filter-select" title="Filter bulan">
                   <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
                   <option value="4">Apr</option><option value="5">Mei</option><option value="6">Jun</option>
                   <option value="7">Jul</option><option value="8" selected>Agus</option>
                   <option value="9">Sep</option><option value="10">Okt</option><option value="11">Nov</option><option value="12">Des</option>
                 </select>
-                <select id="filterTahunRep" onchange="loadAllReports()" class="filter-select" title="Filter tahun">
+                <select id="filterTahunRep" data-change-action="loadAllReports" class="filter-select" title="Filter tahun">
                   <option value="2026" selected>2026</option><option value="2025">2025</option>
                 </select>
                 <input type="text" id="searchReport" placeholder="Cari nama/judul..." class="filter-select filter-search" oninput="loadAllReports()" title="Pencarian">
-                <button type="button" class="btn btn-outline btn-sm" onclick="loadAllReports()">↻ Refresh</button>
+                <button type="button" class="btn btn-outline btn-sm" data-click-action="loadAllReports">↻ Refresh</button>
               </div>
             </div>
             <div id="reportsContent">
@@ -137,12 +137,12 @@
             <div class="card-header">
               <h3 class="card-title">Riwayat Persetujuan</h3>
               <div class="action-buttons">
-                <select id="filterHisStatus" onchange="loadHistory()" class="filter-select" title="Filter status">
+                <select id="filterHisStatus" data-change-action="loadHistory" class="filter-select" title="Filter status">
                   <option value="">Semua</option>
                   <option value="disetujui">Disetujui</option>
                   <option value="revisi_kantor">Revisi</option>
                 </select>
-                <button type="button" class="btn btn-outline btn-sm" onclick="loadHistory()">↻ Refresh</button>
+                <button type="button" class="btn btn-outline btn-sm" data-click-action="loadHistory">↻ Refresh</button>
               </div>
             </div>
             <div id="historyContent">
@@ -157,17 +157,17 @@
               <h3 class="card-title">Arsip Laporan Disetujui</h3>
               <div class="action-buttons">
                 <input type="text" id="searchArchive" placeholder="Cari nama/judul..." class="filter-select filter-search" oninput="loadArchive()" title="Pencarian">
-                <select id="filterArchiveBulan" onchange="loadArchive()" class="filter-select" title="Filter bulan">
+                <select id="filterArchiveBulan" data-change-action="loadArchive" class="filter-select" title="Filter bulan">
                   <option value="">Semua Bulan</option>
                   <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
                   <option value="4">Apr</option><option value="5">Mei</option><option value="6">Jun</option>
                   <option value="7">Jul</option><option value="8" selected>Agus</option>
                   <option value="9">Sep</option><option value="10">Okt</option><option value="11">Nov</option><option value="12">Des</option>
                 </select>
-                <select id="filterArchiveTahun" onchange="loadArchive()" class="filter-select" title="Filter tahun">
+                <select id="filterArchiveTahun" data-change-action="loadArchive" class="filter-select" title="Filter tahun">
                   <option value="2026" selected>2026</option><option value="2025">2025</option>
                 </select>
-                <button type="button" class="btn btn-outline btn-sm" onclick="loadArchive()">↻ Refresh</button>
+                <button type="button" class="btn btn-outline btn-sm" data-click-action="loadArchive">↻ Refresh</button>
               </div>
             </div>
             <div id="archiveContent">
@@ -181,16 +181,16 @@
             <div class="card-header">
               <h3 class="card-title">Monitoring Pengiriman Laporan</h3>
               <div class="action-buttons">
-                <select id="monBulan" onchange="loadMonitoring()" class="filter-select" title="Pilih bulan">
+                <select id="monBulan" data-change-action="loadMonitoring" class="filter-select" title="Pilih bulan">
                   <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
                   <option value="4">Apr</option><option value="5">Mei</option><option value="6">Jun</option>
                   <option value="7">Jul</option><option value="8" selected>Agus</option>
                   <option value="9">Sep</option><option value="10">Okt</option><option value="11">Nov</option><option value="12">Des</option>
                 </select>
-                <select id="monTahun" onchange="loadMonitoring()" class="filter-select" title="Pilih tahun">
+                <select id="monTahun" data-change-action="loadMonitoring" class="filter-select" title="Pilih tahun">
                   <option value="2026" selected>2026</option><option value="2025">2025</option>
                 </select>
-                <button type="button" class="btn btn-outline btn-sm" onclick="loadMonitoring()">↻ Refresh</button>
+                <button type="button" class="btn btn-outline btn-sm" data-click-action="loadMonitoring">↻ Refresh</button>
               </div>
             </div>
             <div id="monitoringContent">
@@ -206,7 +206,7 @@
       <div class="modal modal-lg">
         <div class="modal-header">
           <h3 class="modal-title" id="modalTitle">Detail Laporan</h3>
-          <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+          <button type="button" class="modal-close" data-click-action="closeModal">&times;</button>
         </div>
         <div class="modal-body" id="modalBody"></div>
         <div class="modal-footer" id="modalFooter"></div>
@@ -218,28 +218,31 @@
       <div class="modal modal-sm">
         <div class="modal-header">
           <h3 class="modal-title" id="confirmTitle">Konfirmasi</h3>
-          <button type="button" class="modal-close" onclick="closeConfirmModal()">&times;</button>
+          <button type="button" class="modal-close" data-click-action="closeConfirmModal">&times;</button>
         </div>
         <div class="modal-body">
           <p id="confirmMessage"></p>
           <div id="confirmExtra" class="mt-3"></div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline" onclick="closeConfirmModal()">Batal</button>
+          <button type="button" class="btn btn-outline" data-click-action="closeConfirmModal">Batal</button>
           <button type="button" class="btn btn-danger" id="confirmActionBtn">Konfirmasi</button>
         </div>
       </div>
     </div>
 
-    <!-- Sidebar Overlay -->
+    <!-- Sidebar Overlay (di dalam root .headoffice-layout agar CSS
+       ter-scoped .headoffice-layout .sidebar-overlay menjangkau) -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  </div>
+    </div>
 
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
-  <script src="/js/navigation/head-office-navigation.js"></script>
-  <script src="/js/layouts/head-office-layout.js"></script>
-  <script src="/app.js"></script>
+  <script src="/js/layout-shared.js"></script>
+  <script src="/js/navigation/head-office-navigation.js?v=2"></script>
+  <script src="/js/layouts/head-office-layout.js?v=2"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/translations.js"></script>
   <script src="/head-office/_layout.js"></script>
   <script src="/head-office/persetujuan.js?v=8"></script>

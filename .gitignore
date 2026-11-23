@@ -1,8 +1,83 @@
-node_modules/
+# ── Environment and secrets ────────────────────────────────
 .env
-.DS_Store
-.claude/settings.local.json
-backend/uploads/backups/
+.env.*
+!.env.example
 
-# Runtime logs
+# ── Dependencies ───────────────────────────────────────────
+node_modules/
+backend/node_modules/
+
+# ── Runtime files ──────────────────────────────────────────
+backend/uploads/
+backend/uploads/backups/
 backend/logs/
+backend/private/
+*.log
+
+# ── Database dumps and backups ─────────────────────────────
+*.dump
+*.backup
+*.bak
+*.sql.gz
+# Dump data nyata — spesifik, bukan global *.sql
+ksop_laporan_v1_stable.sql
+# File duplikat yang dibuat OS/kopi-tempat (Windows/macOS/Finder) — jangan commit
+# (server.js hanya me-load nama tanpa spasi; salinan "x 2.js" tidak pernah dipakai)
+* 2.js
+* 2.sql
+# ZIP rilis lama / artefak distribusi — jangan commit
+monitoring-bulanan-release-*.zip
+monitoring-bulanan-safe-release*.zip
+
+# ── OS metadata ────────────────────────────────────────────
+.DS_Store
+__MACOSX/
+
+# ── Temporary files ────────────────────────────���───────────
+*.tmp
+*.temp
+*.swp
+
+# ── Editor / IDE ───────────────────────────────────────────
+.claude/
+
+# ── Release artefakts (output build) ──────────────────────
+/release-staging-*/
+/release-*/
+
+# ── Frontend build artifact (hasil sync-frontend.sh) ─────
+# Source of truth: file HTML/CSS/JS di root project (index.html, employee/, dst.)
+# public/ dibuat ulang oleh scripts/sync-frontend.sh — jangan commit.
+/public/
+
+
+# Agentic OS Template - Downstream Ignore Defaults
+
+# Runtime State (work logs are session-local; private is never committed)
+.agentcortex/context/work/*.md
+.agentcortex/context/work/*.lock.json
+!.agentcortex/context/work/.gitkeep.md
+.agentcortex/context/.guard_receipt.json
+.agentcortex/context/.guard_receipts/
+.agentcortex/context/.guard_locks/
+.agentcortex/context/private/
+.agent/private/
+
+# Deploy Artifacts
+.agentcortex-src/
+*.acx-incoming
+*.acx-local
+
+# Per-Operator Tool State (this project's .claude/settings.json declares
+# settings.local.json user-local; keep git agreeing with that declaration)
+.claude/settings.local.json
+
+# Third-party AI Tool Local State
+.openrouter/
+.claude-chat/
+.antigravity/scratch/
+
+# Framework Tool Bytecode (framework namespace only; project policy untouched)
+.agentcortex/**/__pycache__/
+
+# End Agentic OS Template - Downstream Ignore Defaults

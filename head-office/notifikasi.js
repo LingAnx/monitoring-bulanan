@@ -4,21 +4,23 @@
 // ══════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('KEPALA_KANTOR');
   const authenticated = await initAuth();
   if (!authenticated) return;
 
-  if (!isAdminSeksi()) {
-    window.location.href = '/head-office/dashboard.html';
+  let userRole = null;
+  try { userRole = requireRole('KEPALA_KANTOR'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
     return;
   }
-
+  
   initHeadOfficePage('Notifikasi');
   await loadNotifications();
   startPolling();
 });
 
-const ICON_MAP = { success: '✅', warning: '⚠️', info: 'ℹ️', danger: '❌' };
+const ICON_MAP = { success: '<span class="icon icon-check"></span>', warning: '<span class="icon icon-warning"></span>', info: '<span class="icon icon-info"></span>', danger: '<span class="icon icon-warning"></span>' };
 
 async function loadNotifications() {
   try {
@@ -47,7 +49,7 @@ async function loadNotifications() {
     if (notifications.length === 0) {
       container.innerHTML = `
         <div class="empty-notif">
-          <div class="empty-notif-icon">🔔</div>
+          <div class="empty-notif-icon"><span class="icon icon-bell"></span></div>
           <div class="empty-state-text">Belum ada notifikasi</div>
         </div>
       `;
@@ -62,16 +64,16 @@ async function loadNotifications() {
 
 function renderNotifItem(n) {
   const timeStr = formatRelativeTime(n.created_at);
-  const icon = ICON_MAP[n.type] || 'ℹ️';
+  const icon = ICON_MAP[n.type] || '<span class="icon icon-info"></span>';
   return `
-    <li class="notif-item ${n.is_read ? '' : 'unread'}" onclick="markRead(${n.id})">
+    <li class="notif-item ${n.is_read ? '' : 'unread'}" data-click-action="markRead" data-action-arg="${n.id}">
       <div class="notif-icon notif-icon-${n.type || 'info'}">${icon}</div>
       <div class="notif-body">
         <div class="notif-title">${escapeHtml(n.title)}</div>
         <div class="notif-message">${escapeHtml(n.message)}</div>
       </div>
       <span class="notif-time">${timeStr}</span>
-      <button type="button" class="notif-delete" onclick="event.stopPropagation();deleteNotif(${n.id})" title="Hapus">&times;</button>
+      <button type="button" class="notif-delete" data-click-action="deleteNotif" data-action-arg="${n.id}" data-stop-propagation="true" title="Hapus">&times;</button>
     </li>
   `;
 }

@@ -1,8 +1,15 @@
 // dashboard-kepala.js - Dashboard for Kepala Kantor role
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('KEPALA_KANTOR');
   const authenticated = await initAuth();
   if (!authenticated) return;
+
+  let userRole = null;
+  try { userRole = requireRole('KEPALA_KANTOR'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
+    return;
+  }
 
   if (!isKepala()) {
     window.location.href = '/head-office/dashboard.html';
@@ -78,7 +85,7 @@ function renderHero(data) {
     if (pending > 0) {
       actionsEl.innerHTML = `<a href="/head-office/persetujuan.html?tab=pending" class="btn btn-primary ho-cta-btn">Tinjau ${pending} Laporan Menunggu →</a>`;
     } else {
-      actionsEl.innerHTML = `<span class="btn btn-success ho-cta-btn" style="cursor:default;">✓ Semua Laporan Telah Ditinjau</span>`;
+      actionsEl.innerHTML = `<span class="btn btn-success ho-cta-btn" style="cursor:default;"><span class="icon icon-check"></span> Semua Laporan Telah Ditinjau</span>`;
     }
   }
 
@@ -118,7 +125,7 @@ function renderAlerts(alerts, period) {
   if (!alerts.hasPending && alerts.notSubmitted === 0) {
     container.innerHTML = `
       <div class="alert alert-success" role="alert">
-        ✓ Tidak ada laporan yang memerlukan tindakan saat ini.
+        <span class="icon icon-check"></span> Tidak ada laporan yang memerlukan tindakan saat ini.
       </div>`;
     return;
   }
@@ -127,7 +134,7 @@ function renderAlerts(alerts, period) {
   if (alerts.hasPending) {
     html += `
       <div class="alert alert-warning" role="alert">
-        ⚠️ Perlu Perhatian<br>
+        <span class="icon icon-warning"></span> Perlu Perhatian<br>
         <small>${alerts.pendingCount} laporan menunggu persetujuan Anda. ${alerts.over2Days > 0 ? alerts.over2Days + ' laporan telah menunggu lebih dari 2 hari.' : ''}</small>
         <a href="/head-office/persetujuan.html?tab=pending" class="btn btn-sm btn-primary" style="margin-left:8px;">Tinjau Sekarang</a>
       </div>`;
@@ -136,7 +143,7 @@ function renderAlerts(alerts, period) {
     const deadline = period?.deadline ? formatDate(period.deadline) : '31 Agustus 2026';
     html += `
       <div class="alert alert-info" role="alert">
-        ⚠️ Pengumpulan Belum Lengkap<br>
+        <span class="icon icon-warning"></span> Pengumpulan Belum Lengkap<br>
         <small>${alerts.notSubmitted} pegawai belum mengirim laporan. Deadline: ${deadline}</small>
         <a href="/head-office/persetujuan.html?tab=monitoring" class="btn btn-sm btn-outline" style="margin-left:8px;">Lihat Detail</a>
       </div>`;
@@ -178,8 +185,8 @@ function renderPendingApprovals(reports) {
         <br><span class="status-badge-simple status-diteruskan">Menunggu Persetujuan</span>
       </div>
       <div class="pending-actions">
-        <button type="button" class="btn btn-sm btn-outline" onclick="viewReportDetail(${r.id})">Lihat</button>
-        <button type="button" class="btn btn-sm btn-primary" onclick="showApproveModal(${r.id})">Tinjau Laporan →</button>
+        <button type="button" class="btn btn-sm btn-outline" data-click-action="viewReportDetail" data-action-arg="${r.id}">Lihat</button>
+        <button type="button" class="btn btn-sm btn-primary" data-click-action="showApproveModal" data-action-arg="${r.id}">Tinjau Laporan →</button>
       </div>
     </div>
   `).join('') + '<div class="load-more"><a href="/head-office/persetujuan.html?tab=pending">Lihat Semua Laporan Menunggu →</a></div>';
@@ -225,11 +232,11 @@ function renderSectionMonitoring(sections) {
     const submitted = s.submitted || 0;
     const pct = total > 0 ? Math.round((submitted / total) * 100) : 0;
     const notSub = total - submitted;
-    const statusIcon = pct === 100 ? '✓' : pct >= 80 ? '⚠' : '✗';
+    const statusIcon = pct === 100 ? '<span class="icon icon-check"></span>' : pct >= 80 ? '<span class="icon icon-warning"></span>' : '<span class="icon icon-warning"></span>';
     const statusText = pct === 100 ? 'Lengkap' : pct >= 80 ? 'Hampir Lengkap' : 'Perlu Ditingkatkan';
 
     return `
-      <div class="section-progress-item" onclick="viewSectionDetail(${s.id})" tabindex="0">
+      <div class="section-progress-item" data-click-action="viewSectionDetail" data-action-arg="${s.id}" tabindex="0">
         <div class="section-progress-header">
           <span class="section-progress-name">${escapeHtml(s.nama_seksi)}</span>
           <span class="section-progress-count">${submitted}/${total} • ${pct}%</span>
@@ -252,12 +259,12 @@ function renderStatusChart(distribution) {
 
   const max = Math.max(...Object.values(distribution), 1);
   const items = [
-    { key: 'disetujui', label: 'Disetujui', color: '#10b981', icon: '✅' },
-    { key: 'diteruskan', label: 'Menunggu Persetujuan', color: '#f59e0b', icon: '⏳' },
-    { key: 'diajukan', label: 'Menunggu Verifikasi', color: '#3b82f6', icon: '📋' },
-    { key: 'revisi_kantor', label: 'Revisi Kantor', color: '#ef4444', icon: '⚠️' },
-    { key: 'revisi_admin', label: 'Revisi Admin', color: '#f97316', icon: '🔄' },
-    { key: 'draft', label: 'Draft', color: '#94a3b8', icon: '📝' },
+    { key: 'disetujui', label: 'Disetujui', color: '#10b981', icon: '<span class="icon icon-check"></span>' },
+    { key: 'diteruskan', label: 'Menunggu Persetujuan', color: '#f59e0b', icon: '<span class="icon icon-hourglass"></span>' },
+    { key: 'diajukan', label: 'Menunggu Verifikasi', color: '#3b82f6', icon: '<span class="icon icon-clipboard"></span>' },
+    { key: 'revisi_kantor', label: 'Revisi Kantor', color: '#ef4444', icon: '<span class="icon icon-warning"></span>' },
+    { key: 'revisi_admin', label: 'Revisi Admin', color: '#f97316', icon: '<span class="icon icon-repeat"></span>' },
+    { key: 'draft', label: 'Draft', color: '#94a3b8', icon: '<span class="icon icon-edit"></span>' },
   ];
 
   const nonZero = items.filter(i => distribution[i.key] > 0 || i.key === 'diteruskan');
@@ -303,8 +310,8 @@ function renderApprovalHistory(approvals) {
       <td>${escapeHtml(a.nama_seksi || '-')}</td>
       <td>${formatMonthYear(a.bulan, a.tahun)}</td>
       <td>${formatDate(a.created_at)}</td>
-      <td><span class="badge badge-${a.status === 'disetujui' ? 'disetujui' : 'revisi_kantor'}">${a.status === 'disetujui' ? 'Disetujui' : 'Revisi'}</span></td>
-      <td><button class="btn btn-sm btn-outline" onclick="viewReportDetail(${a.id_laporan})">Lihat</button></td>
+      <td><span class="${a.status === 'disetujui' ? statusBadgeClass('disetujui') : statusBadgeClass('revisi_kantor')}">${a.status === 'disetujui' ? 'Disetujui' : 'Revisi'}</span></td>
+      <td><button class="btn btn-sm btn-outline" data-click-action="viewReportDetail" data-action-arg="${a.id_laporan}">Lihat</button></td>
     </tr>
   `).join('');
 }
@@ -320,22 +327,22 @@ function renderActivityTimeline(activities) {
 
   container.innerHTML = activities.slice(0, 8).map(a => {
     const timeAgo = getRelativeTime(a.created_at);
-    let icon = '📄';
+    let icon = '<span class="icon icon-doc"></span>';
     let text = '';
     if (a.action === 'create') {
-      icon = '📝';
+      icon = '<span class="icon icon-file-plus"></span>';
       text = `${escapeHtml(a.actor_name || 'User')} membuat laporan.`;
     } else if (a.action === 'submit') {
-      icon = '📤';
+      icon = '<span class="icon icon-send"></span>';
       text = `${escapeHtml(a.actor_name || 'User')} mengajukan laporan.`;
     } else if (a.action === 'verify') {
-      icon = '✓';
+      icon = '<span class="icon icon-check"></span>';
       text = `${escapeHtml(a.actor_name || 'Admin')} memverifikasi laporan.`;
     } else if (a.action === 'approve') {
-      icon = '✅';
+      icon = '<span class="icon icon-check"></span>';
       text = `${escapeHtml(a.actor_name || 'Kepala')} menyetujui laporan.`;
     } else if (a.action === 'request_revision') {
-      icon = '⚠️';
+      icon = '<span class="icon icon-warning"></span>';
       text = `${escapeHtml(a.actor_name || 'Kepala')} meminta revisi.`;
     } else {
       text = `${escapeHtml(a.detail || a.action)} — ${escapeHtml(a.actor_name || 'User')}`;
@@ -363,7 +370,7 @@ window.viewReportDetail = async function(id) {
 
   const kegiatan = r.isi_kegiatan ? JSON.parse(r.isi_kegiatan) : [];
   const lampiran = r.lampiran && r.lampiran.length > 0
-    ? r.lampiran.map(f => `<li class="lampiran-row"><span class="lampiran-icon">${getFileIcon(f.filename)}</span><span class="lampiran-name">${escapeHtml(f.filename)} (${formatFileSize(f.size)})</span><a href="${API_BASE}${f.url}" target="_blank" class="lampiran-link">Unduh</a></li>`).join('')
+    ? r.lampiran.map(f => `<li class="lampiran-row"><span class="lampiran-icon">${getFileIcon(f.filename)}</span><span class="lampiran-name">${escapeHtml(f.filename)} (${formatFileSize(f.size)})</span><a href="${API_BASE + safeUrl(f.url)}" target="_blank" class="lampiran-link">Unduh</a></li>`).join('')
     : '<li class="text-muted">Tidak ada lampiran</li>';
 
   const verifikasiHistory = await apiFetch(`/api/laporan/${id}/verifikasi-history`);
@@ -393,11 +400,11 @@ window.viewReportDetail = async function(id) {
 
     <div class="detail-grid">
       <div class="detail-row"><span class="detail-label">Pegawai</span><span>${escapeHtml(r.user_nama)}</span></div>
-      <div class="detail-row"><span class="detail-label">NIP</span><span>${r.nip || '-'}</span></div>
-      <div class="detail-row"><span class="detail-label">Jabatan</span><span>${r.user_role || '-'}</span></div>
+      <div class="detail-row"><span class="detail-label">NIP</span><span>${escapeHtmlText(r.nip || '-')}</span></div>
+      <div class="detail-row"><span class="detail-label">Jabatan</span><span>${escapeHtmlText(r.user_role || '-')}</span></div>
       <div class="detail-row"><span class="detail-label">Seksi</span><span>${escapeHtml(r.nama_seksi || '-')}</span></div>
       <div class="detail-row"><span class="detail-label">Periode</span><span>${formatMonthYear(r.bulan, r.tahun)}</span></div>
-      <div class="detail-row"><span class="detail-label">Status</span><span><span class="badge badge-${r.status}">${statusLabel(r.status)}</span></span></div>
+      <div class="detail-row"><span class="detail-label">Status</span><span><span class="${statusBadgeClass(r.status)}">${escapeHtmlText(statusLabel(r.status))}</span></span></div>
     </div>
 
     ${kegiatan.length > 0 ? `
@@ -405,7 +412,7 @@ window.viewReportDetail = async function(id) {
       <table class="data-table">
         <thead><tr><th>No</th><th>Tanggal</th><th>Kegiatan</th></tr></thead>
         <tbody>
-          ${kegiatan.map((k, i) => `<tr><td>${i + 1}</td><td>${k.tanggal}</td><td>${escapeHtml(k.kegiatan)}</td></tr>`).join('')}
+          ${kegiatan.map((k, i) => `<tr><td>${i + 1}</td><td>${escapeHtmlText(k.tanggal)}</td><td>${escapeHtmlText(k.kegiatan)}</td></tr>`).join('')}
         </tbody>
       </table>
     ` : ''}
@@ -427,9 +434,9 @@ window.viewReportDetail = async function(id) {
   `;
 
   document.getElementById('modalFooter').innerHTML = canApprove(r.status) ? `
-    <button type="button" class="btn btn-danger" onclick="processApproval(${r.id}, 'revisi_kantor')">Minta Revisi</button>
-    <button type="button" class="btn btn-success" onclick="processApproval(${r.id}, 'disetujui')">Setujui Laporan</button>
-  ` : '<button type="button" class="btn btn-outline" onclick="closeDetailModal()">Tutup</button>';
+    <button type="button" class="btn btn-danger" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg-2="revisi_kantor">Minta Revisi</button>
+    <button type="button" class="btn btn-success" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg-2="disetujui">Setujui Laporan</button>
+  ` : '<button type="button" class="btn btn-outline" data-click-action="closeDetailModal">Tutup</button>';
 
   document.getElementById('detailModal').classList.add('active');
 };
@@ -538,7 +545,7 @@ window.viewSectionDetail = async function(seksiId) {
       </tbody>
     </table>
   `;
-  document.getElementById('modalFooter').innerHTML = '<button type="button" class="btn btn-outline" onclick="closeDetailModal()">Tutup</button>';
+  document.getElementById('modalFooter').innerHTML = '<button type="button" class="btn btn-outline" data-click-action="closeDetailModal">Tutup</button>';
   document.getElementById('detailModal').classList.add('active');
 };
 
@@ -572,9 +579,9 @@ function formatFileSize(bytes) {
 
 function getFileIcon(name) {
   const ext = name.split('.').pop().toLowerCase();
-  if (ext === 'pdf') return '📄';
-  if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return '🖼️';
-  return '📎';
+  if (ext === 'pdf') return '<span class="icon icon-doc"></span>';
+  if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return '<span class="icon icon-image"></span>';
+  return '<span class="icon icon-paperclip"></span>';
 }
 
 function getRelativeTime(dateStr) {

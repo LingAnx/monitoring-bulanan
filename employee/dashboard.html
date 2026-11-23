@@ -7,117 +7,30 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/dashboard.css">
-  <link rel="stylesheet" href="/laporan.css">
+  <link rel="stylesheet" href="/laporan.css?v=4">
 </head>
 <body>
   <div class="layout" id="layout">
-    <!-- Sidebar -->
+    <!-- Sidebar (managed by employee-layout.js) -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-icon">&#9733;</div>
+          <div class="logo-icon"><span class="icon icon-star" aria-hidden="true"></span></div>
           <div class="logo-text">
-            <span class="logo-title">KSOP</span>
+            <span class="logo-title">KSOP Kelas II</span>
             <span class="logo-subtitle">Cirebon</span>
           </div>
         </div>
-        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
       </div>
-
-      <nav class="sidebar-nav" id="sidebarNav">
-        <a href="/employee/dashboard.html" class="nav-item nav-item-active" data-page="dashboard">
-          <span class="nav-icon">&#9733;</span>
-          <span class="nav-label">Beranda</span>
-        </a>
-
-        <div class="nav-section">
-          <div class="nav-section-title">LAPORAN</div>
-          <a href="/employee/laporan.html" class="nav-item" data-page="laporan">
-            <span class="nav-icon">&#128196;</span>
-            <span class="nav-label">Laporan Saya</span>
-          </a>
-          <a href="/employee/form.html?action=create" class="nav-item" data-page="buat">
-            <span class="nav-icon">&#43;</span>
-            <span class="nav-label">Buat Laporan</span>
-          </a>
-          <a href="/employee/laporan.html?action=draft" class="nav-item" data-page="draft">
-            <span class="nav-icon">&#128196;</span>
-            <span class="nav-label">Draft</span>
-            <span class="nav-badge hidden" id="draftBadge">0</span>
-          </a>
-          <a href="/employee/laporan.html?action=berjalan" class="nav-item" data-page="berjalan">
-            <span class="nav-icon">&#9203;</span>
-            <span class="nav-label">Laporan Berjalan</span>
-            <span class="nav-badge hidden" id="berjalanBadge">0</span>
-          </a>
-          <a href="/employee/laporan.html?action=riwayat" class="nav-item" data-page="riwayat">
-            <span class="nav-icon">&#128197;</span>
-            <span class="nav-label">Riwayat Laporan</span>
-          </a>
-        </div>
-
-        <div class="nav-section">
-          <div class="nav-section-title">LAINNYA</div>
-          <a href="/employee/notifikasi.html" class="nav-item" data-page="notif">
-            <span class="nav-icon">&#128276;</span>
-            <span class="nav-label">Notifikasi</span>
-            <span class="nav-badge hidden" id="sidebarNotifBadge">0</span>
-          </a>
-          <a href="#" class="nav-item" data-page="statistik">
-            <span class="nav-icon">&#128200;</span>
-            <span class="nav-label">Statistik Saya</span>
-          </a>
-          <a href="/employee/profil.html" class="nav-item" data-page="profil">
-            <span class="nav-icon">&#9825;</span>
-            <span class="nav-label">Profil Saya</span>
-          </a>
-          <a href="#" class="nav-item" data-page="password">
-            <span class="nav-icon">&#128274;</span>
-            <span class="nav-label">Ubah Password</span>
-          </a>
-          <a href="#" class="nav-item" data-page="bantuan">
-            <span class="nav-icon">&#9432;</span>
-            <span class="nav-label">Bantuan</span>
-          </a>
-        </div>
-      </nav>
-
-      <div class="sidebar-footer">
-        <a href="/login.html" class="nav-item logout-item" onclick="handleLogout()">
-          <span class="nav-icon">&#10140;</span>
-          <span class="nav-label">Logout</span>
-        </a>
-      </div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+      <div class="sidebar-footer"></div>
     </aside>
 
     <!-- Main Area -->
     <div class="main-area">
-      <!-- Topbar -->
-      <header class="topbar">
-        <div class="topbar-left">
-          <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
-          <div class="topbar-welcome">
-            <span class="welcome-greeting" id="greeting">Selamat Datang,</span>
-            <span class="welcome-name" id="userName">-</span>
-          </div>
-          <div class="topbar-meta">
-            <span class="role-tag" id="roleBadge">-</span>
-            <span class="meta-separator">&#8226;</span>
-            <span class="meta-seksi" id="seksiDisplay">-</span>
-          </div>
-        </div>
-        <div class="topbar-right">
-          <div class="period-badge" id="periodBadge">
-            <span class="period-dot"></span>
-            <span>Periode Aktif: <strong id="activePeriod">-</strong></span>
-          </div>
-          <a href="/employee/notifikasi.html" class="notif-btn" id="notifBtn" aria-label="Notifikasi">
-            &#128276;
-            <span class="notif-badge hidden" id="notifBadge">0</span>
-          </a>
-          <button type="button" class="logout-btn" onclick="handleLogout()" aria-label="Logout">Logout</button>
-        </div>
-      </header>
+      <!-- Topbar (managed by employee-layout.js) -->
+      <header class="topbar" id="topbar"></header>
 
       <!-- Content -->
       <main class="main-content" id="mainContent">
@@ -156,7 +69,7 @@
     <div class="modal modal-lg">
       <div class="modal-header">
         <h3 class="modal-title" id="modalTitle">Detail Laporan</h3>
-        <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+        <button type="button" class="modal-close" data-click-action="closeModal">&times;</button>
       </div>
       <div class="modal-body" id="modalBody"></div>
       <div class="modal-footer" id="modalFooter"></div>
@@ -166,9 +79,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
-  <script src="/js/navigation/employee-navigation.js"></script>
-  <script src="/js/layouts/employee-layout.js"></script>
-  <script src="/app.js"></script>
+  <script src="/js/layout-shared.js"></script>
+  <script src="/js/navigation/employee-navigation.js?v=2"></script>
+  <script src="/js/layouts/employee-layout.js?v=2"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/translations.js"></script>
   <script src="/employee/_layout.js"></script>
   <script src="/employee/dashboard.js?v=9"></script>

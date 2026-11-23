@@ -4,9 +4,16 @@
 // ══════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', async () => {
-  requireRole('ADMIN_SEKSI');
   const authenticated = await initAuth();
   if (!authenticated) return;
+
+  let userRole = null;
+  try { userRole = requireRole('ADMIN_SEKSI'); } catch (e) {
+    if (e.message === 'AUTH_REQUIRED' || e.message.startsWith('ACCESS_DENIED')) {
+      window.location.href = '/login.html';
+    }
+    return;
+  }
 
   initAdminSectionPage('Profil Saya');
   loadProfileForm();
@@ -31,7 +38,7 @@ async function loadProfileForm() {
       </div>
     </div>
 
-    <form id="profileForm" class="profile-form" onsubmit="updateProfile(event)">
+    <form id="profileForm" class="profile-form" data-submit-action="updateProfile" data-action-event="true">
       <div class="form-row">
         <div class="form-group">
           <label for="nama">Nama Lengkap</label>
@@ -96,8 +103,11 @@ async function loadProfileForm() {
         sectionsRes.data.forEach(s => {
           const opt = document.createElement('option');
           opt.value = s.id;
-          opt.textContent = s.nama;
-          if (currentUser.seksi_id === s.id || currentUser.seksi === s.nama) {
+          opt.textContent = s.nama_seksi;
+          if (
+            Number(currentUser.id_seksi) === Number(s.id) ||
+            currentUser.nama_seksi === s.nama_seksi
+          ) {
             opt.selected = true;
           }
           select.appendChild(opt);
@@ -108,61 +118,66 @@ async function loadProfileForm() {
     console.error('Failed to load sections:', err);
   }
 }
-
 async function updateProfile(e) {
   e.preventDefault();
+
   const form = document.getElementById('profileForm');
   const data = new FormData(form);
+
+  const newPassword =
+    document.getElementById('newPassword').value;
+
+  const confirmPassword =
+    document.getElementById('confirmPassword').value;
+
   const payload = {
     nama: data.get('nama'),
-    nip: data.get('nip'),
-    jabatan: data.get('jabatan'),
-    email: data.get('email')
+    nip: data.get('nip')
   };
 
-  const seksi = data.get('seksi');
-  if (seksi) payload.seksi = seksi;
-
-  // Only include password fields if they have values
-  const currentPassword = document.getElementById('currentPassword').value;
-  const newPassword = document.getElementById('newPassword').value;
-  const confirmPassword = document.getElementById('confirmPassword').value;
-
-  if (newPassword || currentPassword) {
-    if (!currentPassword) {
-      alert('Masukkan password sekarang');
-      return;
-    }
+  if (newPassword) {
     if (newPassword !== confirmPassword) {
       alert('Konfirmasi password tidak cocok');
       return;
     }
+
     if (newPassword.length < 6) {
       alert('Password minimal 6 karakter');
       return;
     }
-    payload.currentPassword = currentPassword;
-    payload.newPassword = newPassword;
+
+    payload.password = newPassword;
   }
 
   try {
     const res = await apiFetch('/api/profile', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(payload)
     });
 
     if (res.success) {
       alert('Profil berhasil diupdate!');
+
       if (res.data) {
-        currentUser = { ...currentUser, ...res.data };
-        saveUserToStorage();
+        currentUser = {
+          ...currentUser,
+          ...res.data
+        };
+
+        AuthStore.setCurrentUser(currentUser);
         loadProfileForm();
       }
     } else {
-      alert('Gagal mengupdate profil: ' + (res.message || ''));
+      alert(
+        'Gagal mengupdate profil: ' +
+        (res.message || '')
+      );
     }
   } catch (err) {
+    console.error('Update profile error:', err);
     alert('Terjadi kesalahan saat mengupdate profil');
   }
 }

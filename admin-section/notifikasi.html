@@ -17,13 +17,13 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-icon">&#9733;</div>
+          <div class="logo-icon"><span class="icon icon-star" aria-hidden="true"></span></div>
           <div class="logo-text">
             <span class="logo-title">KSOP</span>
             <span class="logo-subtitle">Cirebon</span>
           </div>
         </div>
-        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu"><span class="icon icon-menu" aria-hidden="true"></span></button>
       </div>
       <nav class="sidebar-nav" id="sidebarNav"></nav>
       <div class="sidebar-footer"></div>
@@ -40,8 +40,8 @@
           <div class="card-header">
             <h3 class="card-title">Notifikasi</h3>
             <div class="notif-actions">
-              <button type="button" class="btn btn-outline btn-sm" id="markAllReadBtn" onclick="markAllRead()">Tandai Semua Dibaca</button>
-              <button type="button" class="btn btn-outline btn-sm" onclick="loadNotifications()">↻ Refresh</button>
+              <button type="button" class="btn btn-outline btn-sm" id="markAllReadBtn">Tandai Semua Dibaca</button>
+              <button type="button" class="btn btn-outline btn-sm" id="refreshNotifBtn">↻ Refresh</button>
             </div>
           </div>
           <div id="notifContent">
@@ -57,11 +57,13 @@
 
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
-  <script src="/js/navigation/admin-section-navigation.js"></script>
-  <script src="/js/layouts/admin-section-layout.js"></script>
-  <script src="/app.js"></script>
+  <script src="/js/layout-shared.js"></script>
+  <script src="/js/navigation/admin-section-navigation.js?v=2"></script>
+  <script src="/js/layouts/admin-section-layout.js?v=2"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/translations.js"></script>
   <script src="/admin-section/_layout.js"></script>
-  <script src="/admin-section/notifikasi.js?v=4"></script>
+  <script src="/admin-section/notifikasi.js?v=5"></script>
 </body>
 </html>

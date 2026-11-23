@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { logger } = require('../middleware/logger');
 
 // GET /api/seksi - List all seksi
 router.get('/', authenticateToken, async (req, res) => {
@@ -9,7 +10,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const result = await pool.query('SELECT * FROM seksi ORDER BY id');
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('Error fetching seksi:', error);
+    logger.error('Error fetching seksi', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memuat data seksi' });
   }
 });
@@ -25,9 +26,13 @@ router.post('/', authenticateToken, requireRole('SUPERADMIN'), async (req, res) 
       'INSERT INTO seksi (nama_seksi) VALUES ($1) RETURNING *',
       [nama_seksi]
     );
+    await pool.query(
+      'INSERT INTO audit_trail (id_user, action, detail) VALUES ($1, $2, $3)',
+      [req.user.id, 'seksi.create', `Membuat seksi: ${nama_seksi}`]
+    );
     res.status(201).json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('Error creating seksi:', error);
+    logger.error('Error creating seksi', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal membuat seksi' });
   }
 });
@@ -47,9 +52,13 @@ router.put('/:id', authenticateToken, requireRole('SUPERADMIN'), async (req, res
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Seksi tidak ditemukan' });
     }
+    await pool.query(
+      'INSERT INTO audit_trail (id_user, action, detail) VALUES ($1, $2, $3)',
+      [req.user.id, 'seksi.update', `Memperbarui sek "${result.rows[0].nama_seksi}"`]
+    );
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('Error updating seksi:', error);
+    logger.error('Error updating seksi', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal memperbarui seksi' });
   }
 });
@@ -58,13 +67,25 @@ router.put('/:id', authenticateToken, requireRole('SUPERADMIN'), async (req, res
 router.delete('/:id', authenticateToken, requireRole('SUPERADMIN'), async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query('DELETE FROM seksi WHERE id = $1', [id]);
+    // Check if any user is assigned to this section
+    const userCount = await pool.query('SELECT COUNT(*) AS cnt FROM users WHERE id_seksi = $1', [id]);
+    if (parseInt(userCount.rows[0].cnt) > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `Seksi memiliki ${userCount.rows[0].cnt} pengguna terkait. Nonaktifkan pengguna terlebih dahulu.`
+      });
+    }
+    const result = await pool.query('DELETE FROM seksi WHERE id = $1 RETURNING nama_seksi', [id]);
     if (result.rowCount === 0) {
       return res.status(404).json({ success: false, message: 'Seksi tidak ditemukan' });
     }
+    await pool.query(
+      'INSERT INTO audit_trail (id_user, action, detail) VALUES ($1, $2, $3)',
+      [req.user.id, 'seksi.delete', `Menghapus sek: ${result.rows[0].nama_seksi}`]
+    );
     res.json({ success: true, message: 'Seksi berhasil dihapus' });
   } catch (error) {
-    console.error('Error deleting seksi:', error);
+    logger.error('Error deleting seksi', { error: error.message });
     res.status(500).json({ success: false, message: 'Gagal menghapus seksi' });
   }
 });

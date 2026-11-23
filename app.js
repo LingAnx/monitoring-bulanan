@@ -105,25 +105,108 @@ function showNotification(msg, type = 'info') {
   setTimeout(() => toast.remove(), 4000);
 }
 
+// CSP-safe compatibility bridge for legacy static controls. Only explicitly
+// allowlisted page functions can be called; no eval or inline handlers are used.
+const CSP_ACTIONS = new Set([
+  'addActivityRow', 'closeConfirmModal', 'closeDetailModal', 'closeModal',
+  'closePeriodeModal', 'closeResetModal', 'closeSeksiModal', 'closeSendModal',
+  'closeUserModal', 'createBackup', 'exportCSV', 'exportPDF', 'exportReports',
+  'exportUsers', 'handleLampiranChange', 'loadAllReports', 'loadArchive',
+  'loadAudit', 'loadDashboardData', 'loadHistory', 'loadMonitoring',
+  'loadNotifications', 'loadPendingApprovals', 'markAllRead', 'resetPassword',
+  'saveDraft', 'savePeriode', 'saveSeksi', 'saveUser', 'sendNotification',
+  'showPeriodeModal', 'showSeksiModal', 'showSendModal', 'showUserModal',
+  'switchTab', 'changePage', 'deleteLaporan', 'deleteNotif', 'downloadReport',
+  'editLaporan', 'goAuditPage', 'markRead', 'processApproval',
+  'removeActivityRow', 'removeLampiran', 'saveSettings', 'showApproveModal',
+  'showDetail', 'showReportDetail', 'updateProfile', 'viewReportDetail',
+  'viewSectionDetail'
+]);
+
+function dispatchCspAction(event) {
+  const navigationTarget = event.target.closest('[data-navigate], [data-reload]');
+  if (navigationTarget && event.type === 'click') {
+    if (navigationTarget.dataset.reload === 'true') {
+      window.location.reload();
+      return;
+    }
+    const targetPath = navigationTarget.dataset.navigate || '';
+    if (/^\/[a-zA-Z0-9/_?=&.-]*$/.test(targetPath)) {
+      window.location.href = targetPath;
+    }
+    return;
+  }
+
+  const target = event.target.closest(`[data-${event.type}-action]`);
+  if (!target) return;
+
+  const action = target.dataset[`${event.type}Action`];
+  if (!CSP_ACTIONS.has(action) || typeof window[action] !== 'function') {
+    console.error('Blocked unknown CSP action:', action);
+    showNotification('Aksi tidak tersedia. Silakan muat ulang halaman.', 'error');
+    return;
+  }
+
+  if (event.type === 'submit') event.preventDefault();
+
+  const args = [];
+  if (target.dataset.actionEvent === 'true') args.push(event);
+  if (Object.prototype.hasOwnProperty.call(target.dataset, 'actionArg')) {
+    args.push(target.dataset.actionArg);
+  }
+  if (Object.prototype.hasOwnProperty.call(target.dataset, 'actionArg2')) {
+    args.push(target.dataset.actionArg2);
+  }
+  if (target.dataset.actionSelf === 'true') args.push(target);
+  if (target.dataset.stopPropagation === 'true') event.stopPropagation();
+
+  window[action](...args);
+}
+
+document.addEventListener('click', dispatchCspAction);
+document.addEventListener('change', dispatchCspAction);
+document.addEventListener('submit', dispatchCspAction);
+
 // ── Fetch with timeout and retry ─────────────────────
 async function apiFetch(url, options = {}, config = {}) {
   const { timeout = API_TIMEOUT, retries = MAX_RETRIES } = config;
+
+  const method = (options.method || 'GET').toUpperCase();
+
+  // Hanya request baca yang boleh di-retry.
+  // POST/PUT/PATCH/DELETE hanya boleh dikirim satu kali.
+  const canRetry = method === 'GET' || method === 'HEAD';
+  const maxAttempts = canRetry ? Math.max(1, retries) : 1;
+
   let lastError;
-  
-  for (let attempt = 1; attempt <= retries; attempt++) {
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
-    
+
     try {
       const res = await fetch(`${API_BASE}${url}`, {
         ...options,
-        headers: { ...getAuthHeaders(), ...options.headers },
+        headers: {
+          ...getAuthHeaders(),
+          ...options.headers
+        },
         signal: controller.signal
       });
+
       clearTimeout(timeoutId);
-      
-      const data = await res.json();
-      
+
+      const hasEmptyBody = res.status === 204 || res.headers.get('content-length') === '0';
+      let data = {};
+
+      if (!hasEmptyBody) {
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+      }
+
       if (res.status === 401) {
         _auth('logoutCleanup') || void 0;
         currentUser = null;
@@ -131,32 +214,66 @@ async function apiFetch(url, options = {}, config = {}) {
         window.location.href = '/login.html';
         return data;
       }
-      
-      if (!res.ok && data.success === false) {
-        throw new Error(data.message || `HTTP ${res.status}`);
+
+      if (!res.ok) {
+        const error = new Error(
+          data.message || `HTTP ${res.status}`
+        );
+
+        error.status = res.status;
+        throw error;
       }
-      
+
+      if (hasEmptyBody) {
+        return { success: true, status: res.status };
+      }
+
       return data;
+
     } catch (error) {
       clearTimeout(timeoutId);
       lastError = error;
-      
-      // Don't retry on auth errors or client errors
-      if (error.name === 'AbortError' || error.message?.includes('401') || attempt >= retries) {
+
+      // POST/PUT/PATCH/DELETE tidak pernah retry
+      if (!canRetry) {
         break;
       }
-      
-      // Wait before retry (exponential backoff)
-      await new Promise(r => setTimeout(r, Math.pow(2, attempt - 1) * 500));
+
+      // Timeout tidak diulang
+      if (error.name === 'AbortError') {
+        break;
+      }
+
+      // Error client 4xx tidak diulang
+      if (
+        error.status >= 400 &&
+        error.status < 500
+      ) {
+        break;
+      }
+
+      // Sudah mencapai percobaan terakhir
+      if (attempt >= maxAttempts) {
+        break;
+      }
+
+      // Retry hanya untuk GET/HEAD pada network error / server error
+      await new Promise(resolve =>
+        setTimeout(
+          resolve,
+          Math.pow(2, attempt - 1) * 500
+        )
+      );
     }
   }
-  
+
   throw lastError;
 }
-
 // ── Global error boundary ────────────────────────────
+// CSP compliance: jangan pernah menampilkan pesan error mentah ke UI
+// (message bisa memuat payload DB/stack). Log ke console saja.
 window.addEventListener('error', (e) => {
-  console.error('Global error:', e.error);
+  console.error('Global error:', e.error || e.message);
   showNotification('Terjadi kesalahan. Silakan refresh halaman.', 'error');
 });
 

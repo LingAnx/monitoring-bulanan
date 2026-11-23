@@ -3,41 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manajemen User - KSOP</title>
+  <title>Manajemen Pengguna - KSOP</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/users.css">
+  <link rel="stylesheet" href="/laporan.css?v=4">
 </head>
 <body>
-  <header class="app-header">
-    <div class="logo">KSOP <span>Cirebon</span></div>
-    <div class="header-right">
-      <div class="user-badge"><span id="userName"></span><span class="role-tag" id="roleBadge"></span></div>
-      <button type="button" class="logout-btn" onclick="handleLogout()">Logout</button>
-    </div>
-  </header>
-
-  <nav class="nav-tabs" id="navTabs"></nav>
-
-  <main class="main-content">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Manajemen Pengguna</h3>
-        <button type="button" class="btn btn-primary btn-sm" onclick="showUserModal()">+ Tambah User</button>
+  <div class="layout" id="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">KSOP <span>Cirebon</span></div>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">&#9776;</button>
       </div>
-      <div id="usersContent">
-        <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
-      </div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+      <div class="sidebar-footer"></div>
+    </aside>
+    <div class="main-area" id="mainArea">
+      <header class="topbar" id="topbar"></header>
+      <main class="main-content">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Manajemen Pengguna</h3>
+            <button type="button" class="btn btn-primary btn-sm" data-click-action="showUserModal">+ Tambah Pengguna</button>
+          </div>
+          <div id="usersContent">
+            <div class="loading-state"><div class="spinner"></div><p>Memuat data...</p></div>
+          </div>
+        </div>
+      </main>
     </div>
-  </main>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  </div>
 
   <div class="modal-overlay" id="userModal">
-    <div class="modal">
+    <div class="modal modal-lg">
       <div class="modal-header">
         <h3 class="modal-title" id="userModalTitle">Tambah Pengguna</h3>
-        <button type="button" class="modal-close" onclick="closeUserModal()">&times;</button>
+        <button type="button" class="modal-close" data-click-action="closeUserModal">&times;</button>
       </div>
-      <form id="userForm" onsubmit="saveUser(event)">
+      <form id="userForm" data-submit-action="saveUser" data-action-event="true">
         <input type="hidden" id="userId" value="">
         <div class="form-group">
           <label>Username</label>
@@ -61,7 +65,7 @@
             <option value="PEGAWAI">Pegawai</option>
             <option value="ADMIN_SEKSI">Admin Seksi</option>
             <option value="KEPALA_KANTOR">Kepala Kantor</option>
-            <option value="SUPERADMIN">Admin</option>
+            <option value="SUPERADMIN">Superadmin</option>
           </select>
         </div>
         <div class="form-group">
@@ -76,8 +80,35 @@
           </label>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-outline" onclick="closeUserModal()">Batal</button>
+          <button type="button" class="btn btn-outline" data-click-action="closeUserModal">Batal</button>
           <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Password Reset Modal -->
+  <div class="modal-overlay" id="resetModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">Reset Password</h3>
+        <button type="button" class="modal-close" data-click-action="closeResetModal">&times;</button>
+      </div>
+      <form data-submit-action="resetPassword" data-action-event="true">
+        <input type="hidden" id="resetUserId">
+        <input type="hidden" id="resetUserName">
+        <div class="form-group">
+          <label>Password Baru</label>
+          <input type="password" id="resetPassword" required minlength="6">
+          <small class="text-muted">Minimal 6 karakter</small>
+        </div>
+        <div class="form-group">
+          <label>Konfirmasi Password</label>
+          <input type="password" id="resetConfirm" required minlength="6">
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" data-click-action="closeResetModal">Batal</button>
+          <button type="submit" class="btn btn-danger">Reset Password</button>
         </div>
       </form>
     </div>
@@ -85,11 +116,13 @@
 
   <script src="/js/auth/auth-store.js"></script>
   <script src="/js/auth/role-guard.js"></script>
+  <script src="/js/layout-shared.js"></script>
   <script src="/js/navigation/superadmin-navigation.js"></script>
   <script src="/js/layouts/superadmin-layout.js"></script>
-  <script src="/app.js"></script>
+  <script src="/js/security/encoding.js"></script>
+<script src="/app.js"></script>
   <script src="/translations.js"></script>
   <script src="/superadmin/_layout.js"></script>
-  <script src="/superadmin/pengguna.js?v=3"></script>
+  <script src="/superadmin/pengguna.js?v=4"></script>
 </body>
 </html>

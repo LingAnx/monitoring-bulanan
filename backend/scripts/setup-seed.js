@@ -1,5 +1,51 @@
+// ─────────────────────────────────────────────────────────────
+// SECURITY: Script seed untuk environment development.
+//
+// SEMUA password wajib diberikan secara eksplisit via environment
+// variable (SEED_*_PASSWORD) atau CLI argument. Tidak ada default
+// password di source code ini.
+//
+// Usage (env vars — recommended):
+//   SEED_ADMIN_PASSWORD=... SEED_KEPALA_PASSWORD=... \
+//   SEED_ADMIN_TU_PASSWORD=... SEED_ADMIN_LL_PASSWORD=... \
+//   SEED_PEGAWAI_PASSWORD=... \
+//   npm run setup-seed [-- --prod]
+//
+// Usage (CLI args, dev only, in order):
+//   npm run setup-seed -- [adminPw] [kepalaPw] [adminTU_Pw] [adminLL_Pw] [pegawaiPw]
+//
+// Password minimum 12 karakter. Tidak pernah dicetak ke console.
+// ─────────────────────────────────────────────────────────────
+const IS_PROD = process.argv.includes('--prod') || process.env.NODE_ENV === 'production';
+
+const MIN_PW_LEN = 12;
+
+function fail(msg) {
+  console.error(`[setup-seed] FATAL: ${msg}`);
+  process.exit(1);
+}
+
+// Password priority: env var > CLI arg > fail
+// No fallback / default password in this file.
+function resolvePw(envVar, cliArgIdx, label) {
+  const val = process.env[envVar] || process.argv[cliArgIdx];
+  if (!val) {
+    fail(`${label} wajib diset. Gunakan env var ${envVar} atau CLI arg pos ${cliArgIdx - 2}.`);
+  }
+  if (val.length < MIN_PW_LEN) {
+    fail(`${label} minimal ${MIN_PW_LEN} karakter.`);
+  }
+  return val;
+}
+
+const ADMIN_PW   = resolvePw('SEED_ADMIN_PASSWORD',    2, 'SEED_ADMIN_PASSWORD');
+const KEPALA_PW  = resolvePw('SEED_KEPALA_PASSWORD',   3, 'SEED_KEPALA_PASSWORD');
+const ADMITU_PW  = resolvePw('SEED_ADMIN_TU_PASSWORD',  4, 'SEED_ADMIN_TU_PASSWORD');
+const ADMINLL_PW = resolvePw('SEED_ADMIN_LL_PASSWORD',  5, 'SEED_ADMIN_LL_PASSWORD');
+const PEGAWAI_PW = resolvePw('SEED_PEGAWAI_PASSWORD',   6, 'SEED_PEGAWAI_PASSWORD');
+
 const bcrypt = require('bcrypt');
-const pool = require('../db/database');
+const pool   = require('../db/database');
 
 async function setupSeed() {
   try {
@@ -17,7 +63,7 @@ async function setupSeed() {
         [nama]
       );
       if (res.rows.length > 0) {
-        console.log('Seksi seeded:', nama);
+        console.log(`[setup-seed] Seksi seeded: ${nama}`);
       }
     }
 
@@ -37,26 +83,27 @@ async function setupSeed() {
          RETURNING id, username, nama, role`,
         [username, hash, nama, nip, idSeksi, role, isActive]
       );
-      console.log(`User: ${res.rows[0].nama} (${res.rows[0].username}) [${res.rows[0].role}]`);
+      // Password NOT logged.
+      console.log(`[setup-seed] User: ${res.rows[0].nama} (${res.rows[0].username}) [${res.rows[0].role}]`);
       return res.rows[0];
     }
 
     // Admin (SUPERADMIN)
-    const admin = await upsertUser('SUPERADMIN', 'admin123', 'Administrator', '1980010100000001', null, 'SUPERADMIN', true);
+    const admin = await upsertUser('SUPERADMIN', ADMIN_PW, 'Administrator', '1980010100000001', null, 'SUPERADMIN', true);
 
     // Kepala Kantor
-    const kepala = await upsertUser('KEPALA_KANTOR', 'kepala123', 'Kepala Kantor KSOP', '197501011999031002', null, 'KEPALA_KANTOR', true);
+    const kepala = await upsertUser('KEPALA_KANTOR', KEPALA_PW, 'Kepala Kantor KSOP', '197501011999031002', null, 'KEPALA_KANTOR', true);
 
     // Admin Seksi Tata Usaha
     const tuSeksi = seksiRows.rows.find(r => r.nama_seksi === 'Tata Usaha');
-    const adminTU = await upsertUser('ADMIN_SEKSI', 'adminTU123', 'Admin Tata Usaha', '198501011990012001', tuSeksi.id, 'ADMIN_SEKSI', true);
+    const adminTU = await upsertUser('ADMIN_SEKSI', ADMITU_PW, 'Admin Tata Usaha', '198501010000012001', tuSeksi.id, 'ADMIN_SEKSI', true);
 
     // Admin Seksi Lalu Lintas
     const llSeksi = seksiRows.rows.find(r => r.nama_seksi === 'Lalu Lintas dan Angkutan Laut');
-    const adminLL = await upsertUser('ADMIN_SEKSI', 'adminLL123', 'Admin Lalu Lintas', '198501011990012002', llSeksi.id, 'ADMIN_SEKSI', true);
+    const adminLL = await upsertUser('ADMIN_SEKSI', ADMINLL_PW, 'Admin Lalu Lintas', '198501010000022002', llSeksi.id, 'ADMIN_SEKSI', true);
 
     // Pegawai (regular user)
-    const pegawai = await upsertUser('PEGAWAI', 'pegawai123', 'Pegawai Tes', '199001012000011001', tuSeksi.id, 'PEGAWAI', true);
+    const pegawai = await upsertUser('PEGAWAI', PEGAWAI_PW, 'Pegawai Tes', '199001012000011001', tuSeksi.id, 'PEGAWAI', true);
 
     // Sample laporan
     const sampleReports = [
@@ -84,10 +131,10 @@ async function setupSeed() {
           { tanggal: '2026-08-10', kegiatan: 'Pengumpulan data PNBP', keterangan: 'Selesai' },
           { tanggal: '2026-08-15', kegiatan: 'Rekonsiliasi data', keterangan: 'Proses' }
         ]),
-        capaian: 'Data PNBP bulan Juli telah terkumpul',
+        capaian: 'Data bulan Juli telah terkumpul',
         kendala: 'Beberapa pelabuhan belum melengkapi data',
         tindak_lanjut: 'Mengirim reminder ke pelabuhan yang terlambat',
-        rencana_bulan_depan: 'Penyusunan laporan PNBP Agustus',
+        rencana_bulan_depan: 'Penyusunan laporan bulan berikutnya',
         status: 'diajukan'
       },
       {
@@ -98,6 +145,7 @@ async function setupSeed() {
           { tanggal: '2026-08-05', kegiatan: 'Inspeksi crane Pelabuhan Tanjung Perak', keterangan: 'Baik' }
         ]),
         capaian: 'Inspeksi berjalan lancar',
+        kendala: 'Belum ada',
         tindak_lanjut: 'Follow-up perbaikan crane no. 3',
         rencana_bulan_depan: 'Inspeksi alat fungsional lainnya',
         status: 'draft'
@@ -121,7 +169,7 @@ async function setupSeed() {
           r.status === 'disetujui' ? new Date('2026-08-03') : null
         ]
       );
-      console.log(`Laporan: "${r.judul}" [${r.status}]`);
+      console.log(`[setup-seed] Laporan: "${r.judul}" [${r.status}]`);
     }
 
     // Seed sample notifications
@@ -134,18 +182,14 @@ async function setupSeed() {
       [pegawai.id, kepala.id]
     );
 
-    console.log('\nSeed data setup complete!');
-    console.log('\nLogin credentials:');
-    console.log('   Superadmin:       SUPERADMIN / admin123');
-    console.log('   Kepala Kantor:    KEPALA_KANTOR / kepala123');
-    console.log('   Admin Seksi TU:   ADMIN_SEKSI / adminTU123');
-    console.log('   Admin Seksi LL:   ADMIN_SEKSI / adminLL123');
-    console.log('   Pegawai:          PEGAWAI / pegawai123');
+    console.log('\n[setup-seed] Seed data setup complete.');
+    console.log(`[setup-seed] Mode: ${IS_PROD ? 'PRODUCTION' : 'DEVELOPMENT'}`);
+    console.log(`[setup-seed] Users seeded: SUPERADMIN, KEPALA_KANTOR, ADMIN_SEKSI (TU), ADMIN_SEKSI (LL), PEGAWAI`);
+    console.log(`[setup-seed] Password: (tidak ditampilkan — set via env/CLI sebelum eksekusi)`);
 
     process.exit(0);
   } catch (error) {
-    console.error('Error setting up seed data:', error.message);
-    console.error(error.stack);
+    console.error('[setup-seed] Error setting up seed data:', error.message);
     process.exit(1);
   }
 }
