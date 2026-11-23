@@ -96,6 +96,13 @@ app.use(express.static(publicDir, {
   fallthrough: true,
 }));
 
+// Tampilan halaman utama ketika URL root dibuka.
+app.get('/', (req, res, next) => {
+  res.sendFile(path.join(publicDir, 'index.html'), (error) => {
+    if (error) next(error);
+  });
+});
+
 // ── Metrics (in-memory, diagnostik operator) ───────────────
 // Middleware penghitung dipasang SEBELUM route handler agar
 // SEMUA request terhitung (termasuk 404/4xx yang di-handle
