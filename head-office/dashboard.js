@@ -196,9 +196,9 @@ function renderOfficeProgress(progress) {
   const container = document.getElementById('officeProgressCard');
   if (!container) return;
 
-  const pct = progress.percentage || 0;
-  const submitted = progress.submitted || 0;
-  const total = progress.totalEmployees || 0;
+  const pct = Number(progress.percentage) || 0;
+  const submitted = Number(progress.submitted) || 0;
+  const total = Number(progress.totalEmployees) || 0;
   const notSubmitted = total - submitted;
 
   container.innerHTML = `
@@ -208,7 +208,7 @@ function renderOfficeProgress(progress) {
         <span class="progress-percentage">${pct}%</span>
       </div>
       <div class="progress-bar-wrap">
-        <div class="progress-bar" style="width:${pct}%"></div>
+        <progress class="progress-bar" value="${pct}" max="100" aria-label="Progress pengumpulan kantor ${pct}%"></progress>
       </div>
       <div class="progress-stats">
         <span><span class="progress-dot progress-dot-done"></span> Sudah Mengirim: <strong>${submitted}</strong></span>
@@ -228,8 +228,8 @@ function renderSectionMonitoring(sections) {
   }
 
   container.innerHTML = sections.map(s => {
-    const total = s.total_pegawai || 0;
-    const submitted = s.submitted || 0;
+    const total = Number(s.total_pegawai) || 0;
+    const submitted = Number(s.submitted) || 0;
     const pct = total > 0 ? Math.round((submitted / total) * 100) : 0;
     const notSub = total - submitted;
     const statusIcon = pct === 100 ? '<span class="icon icon-check"></span>' : pct >= 80 ? '<span class="icon icon-warning"></span>' : '<span class="icon icon-warning"></span>';
@@ -242,12 +242,12 @@ function renderSectionMonitoring(sections) {
           <span class="section-progress-count">${submitted}/${total} • ${pct}%</span>
         </div>
         <div class="progress-bar-wrap small">
-          <div class="progress-bar" style="width:${pct}%"></div>
+          <progress class="progress-bar" value="${pct}" max="100" aria-label="Progress ${escapeHtml(s.nama_seksi)} ${pct}%"></progress>
         </div>
         <div class="section-progress-meta">
           ${statusIcon} ${statusText}
           ${notSub > 0 ? `<span class="text-muted">• ${notSub} Belum Mengirim</span>` : ''}
-          ${s.pending_approval > 0 ? `<span class="text-warning">• ${s.pending_approval} Menunggu Persetujuan</span>` : ''}
+          ${Number(s.pending_approval) > 0 ? `<span class="text-warning">• ${s.pending_approval} Menunggu Persetujuan</span>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -434,8 +434,8 @@ window.viewReportDetail = async function(id) {
   `;
 
   document.getElementById('modalFooter').innerHTML = canApprove(r.status) ? `
-    <button type="button" class="btn btn-danger" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg-2="revisi_kantor">Minta Revisi</button>
-    <button type="button" class="btn btn-success" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg-2="disetujui">Setujui Laporan</button>
+    <button type="button" class="btn btn-danger" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg2="revisi_kantor">Minta Revisi</button>
+    <button type="button" class="btn btn-success" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg2="disetujui">Setujui Laporan</button>
   ` : '<button type="button" class="btn btn-outline" data-click-action="closeDetailModal">Tutup</button>';
 
   document.getElementById('detailModal').classList.add('active');
@@ -473,8 +473,9 @@ window.processApproval = async function(id, status) {
       } else {
         showNotification(result.message || 'Gagal memproses', 'error');
       }
-    } catch {
-      showNotification('Gagal memproses persetujuan', 'error');
+    } catch (error) {
+      console.error('Failed to process approval:', error);
+      showNotification(error.message || 'Gagal memproses persetujuan', 'error');
     }
   });
 };
@@ -492,9 +493,20 @@ function showConfirmModal(title, message, onConfirm) {
   document.getElementById('confirmExtra').innerHTML = '';
   confirmCallback = onConfirm;
   const btn = document.getElementById('confirmActionBtn');
-  btn.onclick = () => {
+  btn.onclick = async () => {
+    if (btn.disabled) return;
+    const callback = confirmCallback;
+    if (!callback) return;
+    confirmCallback = null;
     closeConfirmModal();
-    if (confirmCallback) confirmCallback();
+    btn.textContent = 'Memproses...';
+    btn.disabled = true;
+    try {
+      await callback();
+    } finally {
+      btn.textContent = 'Konfirmasi';
+      btn.disabled = false;
+    }
   };
   document.getElementById('confirmModal').classList.add('active');
 }

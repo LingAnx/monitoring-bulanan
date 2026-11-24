@@ -150,13 +150,23 @@ function dispatchCspAction(event) {
   if (event.type === 'submit') event.preventDefault();
 
   const args = [];
-  if (target.dataset.actionEvent === 'true') args.push(event);
+
+  if (target.dataset.actionEvent === 'true') {
+    args.push(event);
+  }
+
   if (Object.prototype.hasOwnProperty.call(target.dataset, 'actionArg')) {
     args.push(target.dataset.actionArg);
   }
-  if (Object.prototype.hasOwnProperty.call(target.dataset, 'actionArg2')) {
-    args.push(target.dataset.actionArg2);
+
+  const secondArg =
+    target.dataset.actionArg2 ??
+    target.dataset['actionArg-2'];
+
+  if (secondArg !== undefined) {
+    args.push(secondArg);
   }
+
   if (target.dataset.actionSelf === 'true') args.push(target);
   if (target.dataset.stopPropagation === 'true') event.stopPropagation();
 
