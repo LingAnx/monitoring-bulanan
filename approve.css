@@ -188,12 +188,14 @@
 /* Deadline / monitoring summary */
 .deadline-summary {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 20px;
 }
 
 .deadline-stat {
-  flex: 1;
+  flex: 1 1 140px;
+  min-width: 0;
   background: var(--gray-50);
   border: 1px solid var(--gray-200);
   border-radius: 10px;
@@ -220,6 +222,52 @@
 /* Section block in monitoring */
 .seksi-block {
   margin-bottom: 20px;
+}
+
+/* Monitoring progress bar (CSP-safe: <progress> element, no inline styles) */
+.progress-bar-wrap.seksi-progress {
+  margin-bottom: 8px;
+}
+
+progress.progress-bar {
+  width: 100%;
+  height: 100%;
+  display: block;
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+}
+
+progress.progress-bar::-webkit-progress-bar {
+  background: var(--gray-200);
+  border-radius: 10px;
+  height: 100%;
+}
+
+progress.progress-bar::-webkit-progress-value {
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  border-radius: 10px;
+}
+
+progress.progress-bar::-moz-progress-bar {
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  border-radius: 10px;
+}
+
+progress.progress-bar:incomplete {
+  border: 1px solid var(--gray-200);
+  background: var(--gray-200);
+}
+
+.seksi-block-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  row-gap: 8px;
+  font-size: 0.78rem;
+  color: var(--gray-500);
+  padding: 0 14px;
 }
 
 .seksi-block-header {

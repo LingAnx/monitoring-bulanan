@@ -1,6 +1,21 @@
 # CHANGELOG_FIXES.md
 <!-- ENTRI BARU DI BAWAH BARIS INI -->
 
+### Fix #4 — Tombol Persetujuan Kepala Kantor dan Tampilan Monitoring Seksi
+
+| Field | Detail |
+|---|---|
+| Tanggal | 2026-11-24 |
+| File | `app.js`; `head-office/dashboard.js`; `head-office/persetujuan.js`; `approve.css`; `tests/frontend/test-csp-args-approvals.js`; `docs/design/head-office-approval-monitoring-hotfix.md` |
+| Masalah | (1) `app.js` rusak: dua deklarasi `const secondArg` sehingga `node --check` gagal dan seluruh dispatcher CSP tidak berjalan; (2) tombol persetujuan memakai `data-action-arg-2` yang tidak cocok dengan `dataset.actionArg2` sehingga argumen status tidak sampai ke `processApproval()`; (3) `dashboard.js` mengosongkan `confirmCallback` sebelum callback dijalankan — callback async hilang saat modal ditutup; (4) error `processApproval()` ditelan tanpa pesan API; (5) angka Monitoring Seksi (nilai `COUNT()` PostgreSQL berupa string) menjumlah menjadi `"01111"`/`"01111"` dan progress bar selalu 100%; (6) progress bar memakai inline `style="width:…%"` yang diblokir CSP produksi sehingga bar tampak penuh. |
+| Akar | Edit manual menggandakan blok argumen di `dispatchCspAction()`; atribut `data-action-arg-2` diverifikasi lewat `target.dataset['actionArg-2']` sebagai fallback sementara atribut DOM kanonik adalah `actionArg2`; `closeConfirmModal()` dipanggil sebelum callback dieksekusi; `catch { }` tanpa objek error; akumulasi string `totalPegawai += s.total_pegawai` (string) menghasilkan konkatenasi, bukan penjumlahan; CSS CSP melarang inline style sehingga `style="width:0%"` diblokir dan bar tampil penuh. |
+| Fix | (1) `dispatchCspAction()` dirapikan: satu `const secondArg = target.dataset.actionArg2 ?? target.dataset['actionArg-2']`, urutan argumen tetap `event`, `actionArg`, `secondArg`, `actionSelf`; (2) seluruh tombol distandardkan ke `data-action-arg2`; (3) handler `confirmActionBtn` menyimpan callback sebelum modal ditutup, mencegah klik ganda, dan memakai `try/finally` agar teks serta status `disabled` selalu dipulihkan walau callback gagal; (4) `catch (error)` menampilkan `error.message \|\| 'Gagal memproses persetujuan'` tanpa stack trace; (5) semua field monitoring (`total_pegawai`, `submitted`, `approved`, `pending_approval`, `pending_verification`, `revision`, `not_submitted`) dinormalisasi `Number(...) \|\| 0`; (6) progress bar memakai elemen `<progress>` CSP-safe dengan `aria-label`; (7) ringkasan dan statistik seksi memakai wrapping responsif agar tidak bertabrakan pada viewport sempit. |
+| Verifikasi | **Automated PASS; authenticated browser UAT PENDING.** Tes regresi `tests/frontend/test-csp-args-approvals.js` membuktikan dispatcher runtime mengirim `[id, status]`, callback yang gagal tetap memulihkan tombol, normalisasi string menghasilkan angka benar, progress 0/50/100%, semua progress memiliki `aria-label`, serta container monitoring membungkus. Syntax checks, scanner CSP, icon regression, HTTP 204 regression, sinkronisasi `public/`, pemeriksaan hash source/public, dan `git diff --check` dijalankan pada implementasi ini. UAT terautentikasi tetap harus menguji aksi revisi/setujui dan layout mobile sebelum deploy. |
+| Pelajaran | Atribut data hyphenated (`data-action-arg-2`) harus divalidasi terhadap bentuk `dataset` DOM (camelCase) — tes regresi statis wajib memeriksa atribut, bukan hanya nama aksi. Nilai agregat dari backend (PostgreSQL `COUNT()`) selalu string dan wajib `Number()` sebelum aritmetika. Elemen `<progress>` adalah solusi CSP-safe untuk bar dengan lebar dinamis. |
+| Log Keyword | `csp-secondarg-duplicate`, `data-action-arg2`, `confirm-callback-order`, `monitoring-count-string`, `progress-csp-safe`, `development` |
+| Deploy | **BELUM DEPLOY / UAT PENDING** — perubahan belum di-commit sesuai instruksi. Catatan: `Periode Aktif: -` bukan bug perhitungan; database produksi tidak punya periode berstatus aktif — periode harus dibuat/diaktifkan melalui menu Superadmin. |
+
+
 ### Fix #3 — Lampiran Persisten: Render Ephemeral Disk ke Neon Object Storage
 
 | Field | Detail |

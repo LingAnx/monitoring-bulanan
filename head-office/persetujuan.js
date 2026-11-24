@@ -263,12 +263,12 @@ window.loadMonitoring = async function() {
     }
 
     let totalPegawai = 0, totalSubmitted = 0;
-    let html = `<div class="deadline-summary" style="margin-bottom:20px">`;
     sections.forEach(s => {
-      totalPegawai += s.total_pegawai || 0;
-      totalSubmitted += s.submitted || 0;
+      totalPegawai += Number(s.total_pegawai) || 0;
+      totalSubmitted += Number(s.submitted) || 0;
     });
     const pct = totalPegawai > 0 ? Math.round((totalSubmitted / totalPegawai) * 100) : 0;
+    let html = `<div class="deadline-summary">`;
     html += `
       <div class="deadline-stat"><div class="deadline-stat-value">${totalPegawai}</div><div class="deadline-stat-label">Total Pegawai</div></div>
       <div class="deadline-stat"><div class="deadline-stat-value green">${totalSubmitted}</div><div class="deadline-stat-label">Sudah Lapor</div></div>
@@ -278,22 +278,24 @@ window.loadMonitoring = async function() {
     html += '</div>';
 
     sections.forEach(s => {
-      const secPct = s.total_pegawai > 0 ? Math.round((s.submitted / s.total_pegawai) * 100) : 0;
+      const total = Number(s.total_pegawai) || 0;
+      const submitted = Number(s.submitted) || 0;
+      const secPct = total > 0 ? Math.round((submitted / total) * 100) : 0;
       html += `
         <div class="seksi-block">
           <div class="seksi-block-header">
             <span class="seksi-block-name">${escapeHtml(s.nama_seksi)}</span>
-            <span class="seksi-block-count">${s.submitted}/${s.total_pegawai} • ${secPct}%</span>
+            <span class="seksi-block-count">${submitted}/${total} • ${secPct}%</span>
           </div>
-          <div class="progress-bar-wrap" style="margin-bottom:8px">
-            <div class="progress-bar" style="width:${secPct}%"></div>
+          <div class="progress-bar-wrap seksi-progress">
+            <progress class="progress-bar" value="${secPct}" max="100" aria-label="Progress ${escapeHtml(s.nama_seksi)} ${secPct}%"></progress>
           </div>
-          <div style="display:flex;gap:16px;font-size:0.78rem;color:var(--gray-500)">
-            <span><span class="icon icon-check"></span> Disetujui: ${s.approved || 0}</span>
-            <span><span class="icon icon-hourglass"></span> Menunggu Persetujuan: ${s.pending_approval || 0}</span>
-            <span><span class="icon icon-clipboard"></span> Menunggu Verifikasi: ${s.pending_verification || 0}</span>
-            <span><span class="icon icon-warning"></span> Revisi: ${s.revision || 0}</span>
-            <span><span class="icon icon-warning"></span> Belum: ${s.not_submitted || 0}</span>
+          <div class="seksi-block-stats">
+            <span><span class="icon icon-check"></span> Disetujui: ${Number(s.approved) || 0}</span>
+            <span><span class="icon icon-hourglass"></span> Menunggu Persetujuan: ${Number(s.pending_approval) || 0}</span>
+            <span><span class="icon icon-clipboard"></span> Menunggu Verifikasi: ${Number(s.pending_verification) || 0}</span>
+            <span><span class="icon icon-warning"></span> Revisi: ${Number(s.revision) || 0}</span>
+            <span><span class="icon icon-warning"></span> Belum: ${Number(s.not_submitted) || 0}</span>
           </div>
         </div>
       `;
@@ -405,8 +407,8 @@ window.viewReportDetail = async function(id) {
 
   if (canAct) {
     document.getElementById('modalFooter').innerHTML = `
-      <button type="button" class="btn btn-danger" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg-2="revisi_kantor">Minta Revisi</button>
-      <button type="button" class="btn btn-success" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg-2="disetujui">Setujui Laporan</button>
+      <button type="button" class="btn btn-danger" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg2="revisi_kantor">Minta Revisi</button>
+      <button type="button" class="btn btn-success" data-click-action="processApproval" data-action-arg="${r.id}" data-action-arg2="disetujui">Setujui Laporan</button>
     `;
   } else {
     document.getElementById('modalFooter').innerHTML = '<button type="button" class="btn btn-outline" data-click-action="closeModal">Tutup</button>';
@@ -450,8 +452,9 @@ window.processApproval = async function(id, status) {
       } else {
         showNotification(result.message || 'Gagal memproses', 'error');
       }
-    } catch {
-      showNotification('Gagal memproses persetujuan', 'error');
+    } catch (error) {
+      console.error('Failed to process approval:', error);
+      showNotification(error.message || 'Gagal memproses persetujuan', 'error');
     }
   });
 };
@@ -469,13 +472,19 @@ function showConfirmModal(title, message, onConfirm) {
 
   const btn = document.getElementById('confirmActionBtn');
 
-  btn.onclick = () => {
+  btn.onclick = async () => {
+    if (btn.disabled) return;
     const callback = confirmCallback;
-
+    if (!callback) return;
+    confirmCallback = null;
     closeConfirmModal();
-
-    if (callback) {
-      callback();
+    btn.textContent = 'Memproses...';
+    btn.disabled = true;
+    try {
+      await callback();
+    } finally {
+      btn.textContent = 'Konfirmasi';
+      btn.disabled = false;
     }
   };
 
